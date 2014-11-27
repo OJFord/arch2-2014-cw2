@@ -1,0 +1,21 @@
+# S0={}, S1={}, write-block=B0
+write-ack 0 miss 3
+# S0={B0/d}, S1={}, read-block=B0
+read-ack FF11 0 hit 1
+# S0={B0/d}, S1={}, write-block=B1
+write-ack 1 miss 3
+# S0={B0/d}, S1={B1/d}, write-block=B1
+write-ack 1 hit 1
+# S0={B0/d}, S1={B1/d}, read-block=B1
+read-ack 2211 1 hit 1
+# S0={B0/d}, S1={B1/d}, read-block=B1
+read-ack 4422 1 hit 1
+# S0={B0/d}, S1={B1/d}, read-block=B0
+read-ack FF11 0 hit 1
+# S0={B0/d}, S1={B1/d}, write-block=B4
+write-ack 0 miss 5
+# S0={B4/d}, S1={B1/d}, read-block=B0
+read-ack FF11 0 miss 5
+# S0={B0}, S1={B1/d}, read-block=B4
+read-ack 1234 0 miss 3
+# S0={B4}, S1={B1/d}

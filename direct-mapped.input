@@ -1,0 +1,13 @@
+# 8 bit addresses
+# 2 Bytes/word, 2 words/block, 1 block/set, 2 sets/cache
+# 1 cycle/hit, 2 cycles/read, 2 cycles/write
+write-req 0 FF11
+read-req 0
+write-req 4 2211
+write-req 6 4422
+read-req 4
+read-req 6
+read-req 0
+write-req 16 1234
+read-req 0
+read-req 16
