@@ -7,6 +7,7 @@
 //
 
 #include "mem_sim.h"
+#include "mem_sim_impl.h"
 
 int main(int argc, const char * argv[]){
 	int addr, bpw, wpb, bps, spc, time_hit, time_write, time_read;
@@ -58,12 +59,16 @@ void read( std::stringstream params ){
 	std::string s, serr;
 	params >> s;
 	
-	if( params >> serr )
+	if( params >> serr ){
 		std::cerr << "Unexpected extra parameter to write-req: " << serr;
+		exit( EXIT_FAILURE );
+	}
 
 	int addr = std::stoi(s);
-	
+
+#ifdef DEBUG
 	std::cout << "Reading " << addr << std::endl;
+#endif
 }
 
 void write( std::stringstream params, int bytesPerWord){
@@ -75,19 +80,21 @@ void write( std::stringstream params, int bytesPerWord){
 	
 	params >> s1 >> s2;
 	
-	if( params >> serr )
+	if( params >> serr ){
 		std::cerr << "Unexpected extra parameter to write-req: " << serr;
+		exit( EXIT_FAILURE );
+	}
 	
 	addr	= std::stoi(s1, nullptr, 10);
 	for(unsigned i=0; i<bytesPerWord; ++i)
 		data[i] = std::stoi( s2.substr(i*2, 2), nullptr, 16 );
 	
-	std::cout << s2 << std::endl;
-	
+#ifdef DEBUG
 	std::cout << "Writing ";
 	for(unsigned i=0; i<bytesPerWord; ++i)
 		std::cout << std::hex << (int)data[i];
 	std::cout << " to " << addr << std::endl;
+#endif
 }
 
 void flush(void){
@@ -95,5 +102,6 @@ void flush(void){
 }
 
 void debug(void){
-	std::cout << "debug-ack-begin" << std::endl << std::endl << "debug-ack-end" << std::endl;
+	std::cout << "debug-ack-begin" << std::endl;
+	std::cout << "debug-ack-end" << std::endl;
 }
