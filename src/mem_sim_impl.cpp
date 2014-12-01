@@ -80,11 +80,11 @@ cache_set::cache_set(unsigned* setSize, unsigned* blockSize, unsigned* wordSize)
 	blocks.reserve(*setSize);
 	for(unsigned i=0; i<*setSize; ++i){
 		blocks.at(i) = cache_block(blockSize, wordSize);
-		lru.push( blocks.at(i) );
+		lru.push(i);
 	}
 }
 
-cache_block cache_set::get(unsigned tag) const{
+cache_block cache_set::get(unsigned tag){
 	cache_block* match = nullptr;
 	
 	unsigned i=0;
@@ -97,8 +97,7 @@ cache_block cache_set::get(unsigned tag) const{
 	}
 	
 	if( match != NULL ){					// hit
-		lru.erase(i);
-		lru.push_back(&match);
+		lru.repush(i);
 		return *match;
 	}
 	else									// miss
@@ -119,14 +118,14 @@ cache_block cache_set::set(unsigned tag, uint8_t* data){
 	
 	if( match != NULL ){
 		match->set(data);
-		lru.erase(i);
-		lru.push_back(&match);
+		lru.repush(i);
 		return cache_block(0, 0);			// null return
 	}
 	else{
-		cache_block old = lru.pop_front();
+		unsigned repl = lru.pop();
+		cache_block old = blocks.at(repl);
 		old.setFromMem(tag, data);
-		lru.push_back(old);
+		lru.push(repl);
 		return old;							// return old for write back
 	}
 }

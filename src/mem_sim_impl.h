@@ -9,7 +9,7 @@
 #ifndef __LRU_CacheSim__mem_sim_impl__
 #define __LRU_CacheSim__mem_sim_impl__
 
-#include <deque>
+#include "mem_sim_lrque.h"
 #include <vector>
 
 unsigned log2(unsigned);
@@ -81,12 +81,12 @@ class cache_set{
 public:
 	cache_set(unsigned*, unsigned*, unsigned*);
 	
-	cache_block get(unsigned) const;
+	cache_block get(unsigned);
 	cache_block set(unsigned, uint8_t*);
 
 private:
 	std::vector<cache_block> blocks;
-	std::deque<cache_block&> lru;
+	lrque<unsigned> lru;
 	unsigned* size;
 };
 
