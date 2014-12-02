@@ -51,8 +51,8 @@ the command line) are:
 8. Memory write time in cycles/Block
 
 All parameters are positive integers, encoded
-as decimal. Parameters 2-5 numbers will be integer powers of 2.
-Total memory space size is at most 8MB.
+as decimal. Parameters 2-5 will be integer powers of 2
+(e.g. 1, 2, 4, ...) Total memory space size is at most 8MB.
 
 The cache should operate a LRU replacement policy,
 and a write-back write policy.
@@ -91,7 +91,7 @@ characters.
 In response, your program will produce a stream of
 responses on `stdout`, describing the result of the transaction:
 
-1. Read response: "read-ack" set-index "hit"|"miss" time data
+1. Read response: "read-ack" data set-index "hit"|"miss" time 
 
 2. Write response: "write-ack" set-index "hit"|"miss" time
 
@@ -421,7 +421,7 @@ the program if you want). The main steps are:
 4. Run it, remembering to use a leading `./` if you are in
   the same directory (e.g. `./script.sh`).
 
-### What if I don't want to use schell scripts?
+### What if I don't want to use shell scripts?
 
 Well, don't. Just type it in.
 
