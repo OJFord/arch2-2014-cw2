@@ -43,7 +43,7 @@ bool lrque<T>::repush(const T el){
 	for(unsigned i=0; i<std::deque<T>::size(); ++i){
 		if( std::deque<T>::at(i) == el ){
 			std::deque<T>::erase(this->begin()+i);
-			std::deque<T>::push(el);
+			push(el);
 			return true;
 		}
 	}
