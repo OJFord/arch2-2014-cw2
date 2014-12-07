@@ -10,7 +10,10 @@
 #define __LRU_CacheSim__mem_sim_impl__
 
 #include "mem_sim_lrque.h"
+#include "mem_sim_fvec.h"
 #include <vector>
+
+#define SizeMismatchException 2
 
 unsigned log2(unsigned);
 
@@ -21,6 +24,7 @@ public:
 	unsigned get(void) const;
 	void set(unsigned);
 
+	unsigned addr(void) const;
 	unsigned tag(void) const;
 	unsigned idx(void) const;
 	unsigned offset(void) const;
@@ -49,8 +53,9 @@ private:
 class mem_level{
 public:
 	mem_level(mem_level*);
+	virtual ~mem_level(void);
 	
-	virtual void read(uint8_t*, unsigned) const = 0;
+	virtual void read(uint8_t*, unsigned) = 0;
 	virtual void write(unsigned, uint8_t*) = 0;
 
 protected:
@@ -59,9 +64,10 @@ protected:
 
 class ram: public mem_level{
 public:
-	ram(unsigned*, unsigned*);
+	ram(unsigned, unsigned);
+	~ram(void);
 	
-	virtual void read(uint8_t*, unsigned) const;
+	virtual void read(uint8_t*, unsigned);
 	virtual void write(unsigned, uint8_t*);
 	
 private:
@@ -70,11 +76,21 @@ private:
 
 class cache_block{
 public:
-	cache_block(unsigned*, unsigned*);
+	cache_block(unsigned, unsigned);
+	~cache_block(void);
 	
-	void get(uint8_t*, unsigned*) const;
+	//gets data in word at given offset to buffer
+	void get(uint8_t*, unsigned) const;
+	// gets all data in block
+	void get(uint8_t*) const;
+	
+	// sets data in word at given offset from buffer
+	void set(unsigned, uint8_t*);
+	// sets all data in block from buffer
 	void set(uint8_t*);
-	void setFromMem(unsigned, uint8_t*);
+	
+	// loads a block from memory with given tag from buffer
+	void load_mem(unsigned, uint8_t*);
 	
 	unsigned tag(void) const;
 	bool valid(void) const;
@@ -90,22 +106,41 @@ private:
 
 class cache_set{
 public:
-	cache_set(unsigned*, unsigned*, unsigned*);
+	cache_set(unsigned, unsigned, unsigned);
 	
-	cache_block get(unsigned);
-	cache_block set(unsigned, uint8_t*);
+	// locates block for a given tag
+	//	returns block
+	cache_block* get(unsigned);
+	
+	// sets a word within block for given tag, at given offset
+	//	returns true if successful, false otherwise (tag not in set)
+	bool set(unsigned, unsigned, uint8_t*);
+	
+	// loads a block from memory with specified tag
+	//	returns evicted block value, or null block [not valid or dirty; params (0,0)]
+	cache_block load(unsigned, uint8_t*);
 
 private:
 	std::vector<cache_block> blocks;
 	lrque<unsigned> lru;
 };
 
+typedef enum{
+	READ=0,
+	WRITE=1
+} rwMode;
+
 class cache: public mem_level{
 public:
-	cache(ram, unsigned, unsigned, unsigned, unsigned);
+	cache(ram*, unsigned, unsigned, unsigned, unsigned);
 	
-	virtual void read(uint8_t*, unsigned) const;
+	void rw(rwMode, uint8_t*, unsigned);
+	virtual void read(uint8_t*, unsigned);
 	virtual void write(unsigned, uint8_t*);
+	
+	bool		hit(void) const;
+	unsigned	access_time(void) const;
+	unsigned	set_idx(void) const;
 
 private:
 	std::vector<cache_set>	sets;
@@ -113,6 +148,10 @@ private:
 	const unsigned	setSize;
 	const unsigned	blockSize;
 	const unsigned	wordSize;
+
+	bool		_hit;
+	unsigned	_access_time;
+	unsigned	_set_idx;
 };
 
 #endif /* defined(__LRU_CacheSim__mem_sim_impl__) */

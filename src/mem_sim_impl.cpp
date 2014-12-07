@@ -112,6 +112,7 @@ void cache_block::set(uint8_t* ibuf){
 
 void cache_block::load_mem(unsigned tag, uint8_t* ibuf){
 	set(ibuf);
+	_tag = tag;
 	_dirty = false;
 	_valid = true;
 }
@@ -128,113 +129,150 @@ bool cache_block::dirty(void) const{
 	return _dirty;
 }
 
-cache_set::cache_set(unsigned* setSize, unsigned* blockSize, unsigned* wordSize): size(setSize){
-	blocks.reserve(*setSize);
-	for(unsigned i=0; i<*setSize; ++i){
-		blocks.at(i) = cache_block(blockSize, wordSize);
+/*
+ *	Cache set
+*/
+
+cache_set::cache_set(unsigned setSize, unsigned blockSize, unsigned wordSize){
+	blocks.reserve(setSize);
+	for(unsigned i=0; i<setSize; ++i){
+		blocks.push_back( cache_block(blockSize, wordSize) );
 		lru.push(i);
 	}
 }
 
-cache_block cache_set::get(unsigned tag){
-	cache_block* match = nullptr;
-	
-	unsigned i=0;
-	for(; i<*size; ++i){					// each block
-		cache_block cand = blocks.at(i);
-		if( cand.tag() == tag ){
-			match = &cand;
-			break;
+cache_block* cache_set::get(unsigned tag){
+	for(unsigned i=0; i<blocks.size(); ++i){			// each block
+		cache_block& cand = blocks.at(i);
+		
+		if( cand.valid() && cand.tag() == tag ){		// hit
+			lru.repush(i);
+			return &cand;
 		}
 	}
-	
-	if( match != NULL ){					// hit
-		lru.repush(i);
-		return *match;
-	}
-	else									// miss
-		return cache_block(0, 0);			// null return
+	return nullptr;										// miss
 }
 
-cache_block cache_set::set(unsigned tag, uint8_t* data){
-	cache_block* match = nullptr;
-	
-	unsigned i=0;
-	for(; i<*size; ++i){					// each block
-		cache_block cand = blocks.at(i);
-		if( cand.tag() == tag ){
-			match = &cand;
-			break;
+bool cache_set::set(unsigned tag, unsigned offset, uint8_t* data){
+	for(unsigned i=0; i<blocks.size(); ++i){			// each block
+		cache_block& cand = blocks.at(i);
+		
+		if( cand.tag() == tag ){						// hit: block already in set
+			cand.set(offset, data);
+			lru.repush(i);
+			return true;
 		}
 	}
-	
-	if( match != NULL ){
-		match->set(data);
-		lru.repush(i);
-		return cache_block(0, 0);			// null return
-	}
-	else{
-		unsigned repl = lru.pop();
-		cache_block old = blocks.at(repl);
-		old.setFromMem(tag, data);
-		lru.push(repl);
-		return old;							// return old for write back
-	}
+	return false;										// miss
 }
 
-cache::cache(ram mem, unsigned size, unsigned setSize, unsigned blockSize, unsigned wordSize)
+cache_block cache_set::load(unsigned tag, uint8_t* ibuf){
+	unsigned evict_idx = lru.pop();
+	cache_block ret = blocks.at( evict_idx );			// grab block before it's kicked out
+	
+	blocks.at( evict_idx ).load_mem(tag, ibuf);
+	return ret;											// return old block for write back
+}
+
+/*
+ *	Cache
+*/
+
+cache::cache(ram* mem, unsigned size, unsigned setSize, unsigned blockSize, unsigned wordSize)
 : mem_level(mem), size(size), setSize(setSize), blockSize(blockSize), wordSize(wordSize){
 	
 	sets.reserve(size);
 	for(unsigned i=0; i<size; ++i)
-		sets.at(i) = cache_set(&setSize, &blockSize, &wordSize);
+		sets.push_back( cache_set(setSize, blockSize, wordSize) );
 }
 
-void cache::read(uint8_t* obuf, unsigned addr) const{
-	cache_address address(addr, setSize, size);
-	unsigned idx = address.idx();
+void cache::rw(rwMode mode, uint8_t* buf, unsigned addr){
+	cache_address address(addr, size, blockSize);
+	_set_idx = address.idx()%size;
 	
-	cache_set set = sets.at( idx%size );
-	cache_block* match = nullptr;
+	unsigned tag = address.tag();
+	unsigned ofst= address.offset();
+
+	cache_set& set = sets.at(_set_idx);
+	cache_block* cand = set.get(tag);					// set.get, lol
 	
-	for(unsigned i=0; i<size; ++i){			// each block in set
-		cache_block cand = set.get(i);		// set.get, lol
+	if( cand != NULL ){									// cache hit
+		_hit = true;
 		
-		// candidate block is valid and tag matches
-		if( cand.valid() && cand.tag() == address.tag() ){
-			match = &cand;
-			break;
+		if( mode == READ )
+			cand->get(buf, ofst);
+
+		else if( mode == WRITE )
+			cand->set(ofst, buf);
+	}
+	else{												// cache miss
+		_hit = false;
+		
+		uint8_t* membuf = new uint8_t[ wordSize*blockSize ];
+		for(unsigned i=0; i<blockSize; ++i)
+			higher_mem->read(
+				&membuf[i*wordSize],
+				( addr - ofst ) | i						// read each word in block from mem
+			);
+		
+		for(unsigned i=0; i<wordSize; ++i)
+			if( mode == READ )
+				buf[i] = ( &membuf[ofst*wordSize] )[i];	// copy each byte from word at offset
+		
+			else if( mode == WRITE )
+				set.set(tag, ofst, buf);
+		
+		delete [] membuf;
+		
+		cache_block evicted = set.load(tag, membuf);
+		set.set(tag, ofst, buf);						// set.set, aarrgh
+		
+		if( evicted.valid() && evicted.dirty() ){		// write back
+			uint8_t tmp[wordSize*blockSize];
+			evicted.get(tmp);
+			higher_mem->write(addr, tmp);
 		}
 	}
 	
-	if( match != NULL ){
-		// cache hit
-		unsigned offset = address.offset();
-		match->get(obuf, &offset);
-	}
-	else{
-		// cache miss
-		higher_mem->read(obuf, addr);
-		cache_block old = set.set(address.tag(), obuf);	// set.set, aarrgh
-		
-		if( old.valid() && old.dirty() ){	// write back
-			uint8_t buf[wordSize*blockSize];
-			old.get(buf, nullptr);
-			higher_mem->write(addr, buf);
-		}
-	}
-	
 }
 
-cache_address::cache_address(unsigned addr, unsigned numBlocks, unsigned numSets): _data(addr){
-	_offset = addr & ~(0xFFFFFFFF<<log2(numBlocks));
-	
-	_idx = addr>>log2(_offset);				// remove offset
-	_idx &= ~(0xFFFFFFFF<<log2(numSets));	// remove tag
-	
-	_tag = addr>>log2(_offset);				// remove offset
-	_tag >>= log2(numSets);					// remove index
+void cache::read(uint8_t* obuf, unsigned addr){
+	cache::rw(READ, obuf, addr);
+}
 
+void cache::write(unsigned addr, uint8_t* ibuf){
+	cache::rw(WRITE, ibuf, addr);
+}
+
+bool cache::hit(void) const{
+	return _hit;
+}
+
+unsigned cache::access_time(void) const{
+	return _access_time;
+}
+
+unsigned cache::set_idx(void) const{
+	return _set_idx;
+}
+
+/*
+ * Cache address
+*/
+
+cache_address::cache_address(unsigned addr, unsigned numSets, unsigned wordsPerBlock): _data(addr){
+	_offset = addr & ~(0xFFFFFFFF<<log2(wordsPerBlock));
+	
+	_idx = addr>>log2(_offset);							// remove offset
+	_idx &= ~(0xFFFFFFFF<<log2(numSets));				// remove tag
+	
+	_tag = addr>>log2(_offset);							// remove offset
+	_tag >>= log2(numSets);								// remove index
+
+}
+
+unsigned cache_address::addr(void) const{
+	return _data;
 }
 
 unsigned cache_address::offset(void) const{
