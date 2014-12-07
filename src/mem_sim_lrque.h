@@ -11,12 +11,14 @@
 
 #include <deque>
 
-template<class T> class lrque: private std::deque<T>{
+template<class T>
+class lrque: private std::deque<T>{
 public:
 	//Push new item to queue
 	void push(const T el);
 	
 	//Pop item from queue
+	//	returns popped item
 	T pop(void);
 	
 	//Push existing item to the back of the queue
@@ -24,21 +26,24 @@ public:
 	bool repush(const T);
 };
 
-template<class T> void lrque<T>::push(const T el){
-	this->push_back(el);
+template<class T>
+void lrque<T>::push(const T el){
+	std::deque<T>::push_back(el);
 }
 
-template<class T> T lrque<T>::pop(void){
-	T t = this->front();
-	this->pop_front();
+template<class T>
+T lrque<T>::pop(void){
+	T t = std::deque<T>::front();
+	std::deque<T>::pop_front();
 	return t;
 }
 
-template<class T> bool lrque<T>::repush(const T el){
-	for(unsigned i=0; i<this->size(); ++i){
-		if( this->at(i) == el ){
-			this->erase(this->begin()+i);
-			this->push(el);
+template<class T>
+bool lrque<T>::repush(const T el){
+	for(unsigned i=0; i<std::deque<T>::size(); ++i){
+		if( std::deque<T>::at(i) == el ){
+			std::deque<T>::erase(this->begin()+i);
+			std::deque<T>::push(el);
 			return true;
 		}
 	}
