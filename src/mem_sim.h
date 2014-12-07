@@ -13,11 +13,11 @@
 #include <string>
 #include <sstream>
 
-#include "mem_sim_impl.h"
+#include "mem_sim_cache.h"
 
-void read(cache*, unsigned, std::stringstream);
-void write(cache*, unsigned, std::stringstream);
-void flush(cache*);
-void debug(cache*);
+void read(Cache*, unsigned, std::stringstream);
+void write(Cache*, unsigned, std::stringstream);
+void flush(Cache*);
+void debug(Cache*);
 
 #endif

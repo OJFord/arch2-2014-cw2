@@ -33,8 +33,8 @@ int main(int argc, const char * argv[]){
 	time_write	= atoi( argv[7] );
 	time_read	= atoi( argv[8] );
 
-	ram*	ram_h	= new ram(wpb, bpw);
-	cache*	cache_h = new cache(ram_h, spc, bps, wpb, bpw);
+	Ram*	ram	= new Ram(wpb, bpw);
+	Cache*	cache = new Cache(ram, spc, bps, wpb, bpw);
 
 	std::string input;
 	while( std::getline(std::cin, input) ){
@@ -43,16 +43,16 @@ int main(int argc, const char * argv[]){
 			//Comment. Ignore until newline.
 		
 		else if( input.compare(0, 9, "read-req ") == 0 )
-			read( cache_h, bpw, std::stringstream(input.substr(9)) );
+			read( cache, bpw, std::stringstream(input.substr(9)) );
 		
 		else if( input.compare(0, 10, "write-req ") == 0)
-			write( cache_h, bpw, std::stringstream(input.substr(9)) );
+			write( cache, bpw, std::stringstream(input.substr(9)) );
 		
 		else if( input.compare(0, 10, "flush-req ") == 0)
-			flush( cache_h );
+			flush( cache );
 		
 		else if( input.compare(0, 10, "debug-req ") == 0)
-			debug( cache_h );
+			debug( cache );
 		
 		else
 			std::cerr << "Malformed input." << std::endl;
@@ -62,7 +62,7 @@ int main(int argc, const char * argv[]){
 	exit( EXIT_SUCCESS );
 }
 
-void read(cache* cache_h, unsigned wlen, std::stringstream params){
+void read(Cache* cache, unsigned wlen, std::stringstream params){
 	std::cout << "read-ack ";
 	
 	std::string s, serr;
@@ -81,23 +81,23 @@ void read(cache* cache_h, unsigned wlen, std::stringstream params){
 	
 	uint8_t buf[wlen];
 	
-	cache_h->read(buf, addr);
+	cache->read(buf, addr);
 	unsigned data = buf[0];
 	for(unsigned i=1; i<wlen; ++i){
 		data <<= 8;
 		data |= buf[i];
 	}
 	
-	std::cout << " " << cache_h->set_idx() << " ";
-	if( cache_h->hit() )
+	std::cout << " " << cache->set_idx() << " ";
+	if( cache->hit() )
 		std::cout << "hit ";
 	else
 		std::cout << "miss ";
 	
-	std::cout << cache_h->access_time() << " " << data << std::endl;
+	std::cout << cache->access_time() << " " << data << std::endl;
 }
 
-void write(cache* cache_h, unsigned wlen, std::stringstream params){
+void write(Cache* cache, unsigned wlen, std::stringstream params){
 	std::cout << "write-ack " << std::endl;
 	
 	std::string s1, s2, serr;
@@ -124,20 +124,20 @@ void write(cache* cache_h, unsigned wlen, std::stringstream params){
 	std::cout << " to " << addr << std::endl;
 #endif
 	
-	cache_h->write(addr, data);
-	std::cout << " " << cache_h->set_idx() << " ";
-	if( cache_h->hit() )
+	cache->write(addr, data);
+	std::cout << " " << cache->set_idx() << " ";
+	if( cache->hit() )
 		std::cout << "hit ";
 	else
 		std::cout << "miss ";
-	std::cout << cache_h->access_time() << std::endl;
+	std::cout << cache->access_time() << std::endl;
 }
 
-void flush(cache* cache_h){
+void flush(Cache* cache){
 	std::cout << "flush-ack" << std::endl;
 }
 
-void debug(cache* cache_h){
+void debug(Cache* cache){
 	std::cout << "debug-ack-begin" << std::endl;
 	std::cout << "debug-ack-end" << std::endl;
 }
