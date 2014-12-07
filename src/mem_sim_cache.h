@@ -18,7 +18,7 @@
 
 class CacheAddress{
 public:
-	CacheAddress(unsigned, unsigned, unsigned);
+	CacheAddress(unsigned, unsigned, unsigned, unsigned, unsigned);
 	
 	unsigned get(void) const;
 	void set(unsigned);
@@ -98,7 +98,7 @@ typedef enum{
 
 class Cache: public MemoryLevel{
 public:
-	Cache(Ram*, unsigned, unsigned, unsigned, unsigned);
+	Cache(Ram*, unsigned, unsigned, unsigned, unsigned, unsigned);
 	
 	//	Implements MemoryLevel read/write
 	virtual void read(uint8_t*, unsigned);
@@ -114,7 +114,7 @@ protected:
 	
 private:
 	fvec<CacheSet>	sets;
-	
+
 	const unsigned	setSize;
 	const unsigned	blockSize;
 	const unsigned	wordSize;

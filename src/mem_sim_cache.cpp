@@ -22,24 +22,26 @@ CacheBlock::~CacheBlock(void){
 
 void CacheBlock::get(uint8_t* obuf, unsigned offset) const{
 	fvec<uint8_t> word(wordSize);
-	word = words.at( offset%wordSize ).get();					// get word at offset
+	word = words.at( offset%wordSize ).get();			// get word at offset
 	for(unsigned i=0; i<word.size(); ++i)
-		obuf[i] = word.at(i);									// copy bytes
+		obuf[i] = word.at(i);							// copy bytes
 }
 
 void CacheBlock::get(uint8_t* obuf) const{
 	for(unsigned i=0; i<words.size(); ++i)
-		get(obuf+i*words.size(), i);							// get each word
+		get(obuf+i*words.size(), i);					// get each word
 }
 
 void CacheBlock::set(unsigned offset, uint8_t* ibuf){
-	words.at( offset%wordSize ).set( Word( wordSize, ibuf ) );	// set word at offset
+	words.at(
+		offset%wordSize
+	).set( Word( wordSize, ibuf ) );					// set word at offset
 	_dirty = true;
 }
 
 void CacheBlock::set(uint8_t* ibuf){
 	for(unsigned i=0; i<words.size(); ++i)
-		set(i, ibuf+i*words.size());							// set each word
+		set(i, ibuf+i*words.size());					// set each word
 }
 
 void CacheBlock::load_mem(unsigned tag, uint8_t* ibuf){
@@ -84,16 +86,10 @@ CacheBlock* CacheSet::get(unsigned tag){
 }
 
 bool CacheSet::set(unsigned tag, unsigned offset, uint8_t* data){
-	for(unsigned i=0; i<blocks.size(); ++i){			// each block
-		CacheBlock& cand = blocks.at(i);
-		
-		if( cand.tag() == tag ){						// hit: block already in set
-			cand.set(offset, data);
-			lru.repush(i);
-			return true;
-		}
-	}
-	return false;										// miss
+	CacheBlock* match = get(tag);
+	if(match)											// hit
+		match->set(offset, data);
+	return match != NULL;
 }
 
 CacheBlock CacheSet::load(unsigned tag, uint8_t* ibuf){
@@ -108,8 +104,9 @@ CacheBlock CacheSet::load(unsigned tag, uint8_t* ibuf){
  *	Cache
 */
 
-Cache::Cache(Ram* mem, unsigned size, unsigned setSize,  unsigned blockSize, unsigned wordSize)
- :	MemoryLevel(mem),
+Cache::Cache(Ram* mem, unsigned addrSize, unsigned size,
+	unsigned setSize,  unsigned blockSize, unsigned wordSize)
+ :	MemoryLevel(mem, addressLen),
 	setSize(setSize),
 	blockSize(blockSize),
 	wordSize(wordSize),
@@ -118,7 +115,7 @@ Cache::Cache(Ram* mem, unsigned size, unsigned setSize,  unsigned blockSize, uns
 
 void Cache::rw(rwMode mode, uint8_t* buf, unsigned addr){
 	
-	CacheAddress address(addr, (unsigned)sets.size(), blockSize);
+	CacheAddress address(addr, addressLen, (unsigned)sets.size(), blockSize, wordSize);
 	_set_idx = address.idx()%sets.size();
 	
 	unsigned tag = address.tag();
@@ -201,15 +198,18 @@ unsigned log2(unsigned x){
 	return n;
 }
 
-CacheAddress::CacheAddress(unsigned addr, unsigned numSets, unsigned wordsPerBlock): _data(addr){
+CacheAddress::CacheAddress( unsigned addr, unsigned addrLen, unsigned numSets,
+	unsigned wordsPerBlock, unsigned bytesPerWord ) : _data(addr){
 	
-	_offset = addr & ~(0xFFFFFFFF<<log2(wordsPerBlock));
+	unsigned len_ofst, len_idx, len_tag;				// length in bits
 	
-	_idx = addr>>log2(_offset);							// remove offset
-	_idx &= ~(0xFFFFFFFF<<log2(numSets));				// remove tag
+	len_ofst= log2(wordsPerBlock*bytesPerWord);
+	len_idx	= log2(numSets);
+	len_tag	= addrLen - ( len_idx + len_ofst );
 	
-	_tag = addr>>log2(_offset);							// remove offset
-	_tag >>= log2(numSets);								// remove index
+	_offset = addr & ~( ((unsigned)-1) << len_ofst );
+	_idx	= (addr - _offset) & ~( ((unsigned)-1) << (len_ofst + len_idx) );
+	_tag	= addr >> (len_ofst + len_tag);
 
 }
 

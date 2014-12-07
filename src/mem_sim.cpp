@@ -34,7 +34,7 @@ int main(int argc, const char * argv[]){
 	time_read	= atoi( argv[8] );
 
 	Ram*	ram	= new Ram(wpb, bpw);
-	Cache*	cache = new Cache(ram, spc, bps, wpb, bpw);
+	Cache*	cache = new Cache(ram, alen, spc, bps, wpb, bpw);
 
 	std::string input;
 	while( std::getline(std::cin, input) ){

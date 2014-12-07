@@ -13,14 +13,16 @@
 
 class MemoryLevel{
 public:
-	MemoryLevel(MemoryLevel* lvl): higher_mem(lvl){};
+	MemoryLevel(MemoryLevel* lvl, unsigned alen)
+	 : higher_mem(lvl), addressLen(alen){};
 	virtual ~MemoryLevel(void){ delete higher_mem; };
 	
 	virtual void read(uint8_t*, unsigned) = 0;
 	virtual void write(unsigned, uint8_t*) = 0;
 	
 protected:
-	MemoryLevel* higher_mem;
+	MemoryLevel*	higher_mem;
+	const unsigned	addressLen;
 };
 
 #endif
