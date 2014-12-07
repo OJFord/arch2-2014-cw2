@@ -18,47 +18,99 @@ unsigned log2(unsigned x){
 }
 
 mem_level::mem_level(mem_level* lvl): higher_mem(lvl){};
-
-ram::ram(unsigned* size, unsigned* wLen): mem_level(nullptr), size(size), wLen(wLen){
-	bytes = new uint8_t[*wLen**size];
+mem_level::~mem_level(void){
+	delete higher_mem;
 }
 
-void ram::read(uint8_t* obuf, unsigned addr) const{
-	for(unsigned i=0; i<*wLen; ++i)
-		*obuf++ = bytes[addr+i];
+word::word(unsigned len, bool zero): bytes(len, 0){
+	//bytes = new fvec<uint8_t>(len, 0);
+	if(zero)
+		for(unsigned i=0; i<bytes.size(); ++i)
+			bytes.at(i) = 0;
+}
+
+word::word(unsigned len, uint8_t* ibuf): bytes(len, 0){
+	for(unsigned i=0; i<bytes.size(); ++i)
+		bytes.at(i) = ibuf[i];
+}
+
+word::~word(void){
+	//delete bytes;
+}
+
+fvec<uint8_t> word::get(void) const{
+	return bytes;
+}
+
+void word::set(fvec<uint8_t> idata){
+	if( idata.size() != bytes.size() )
+		throw SizeMismatchException;
+
+	bytes = idata;
+}
+
+void word::set(word copy){
+	bytes = copy.bytes;
+}
+
+/*
+ *	RAM
+*/
+
+ram::ram(unsigned size, unsigned wLen)
+ : mem_level(nullptr), words(size, wLen, 0){}			// initialise mem to zeroes
+
+ram::~ram(void){
+	//delete words;
+}
+
+void ram::read(uint8_t* obuf, unsigned addr){
+	fvec<uint8_t> word = words.at(addr).get();
+	for(unsigned i=0; i<word.size(); ++i)
+		obuf[i] = word.at(i);
 }
 
 void ram::write(unsigned addr, uint8_t* ibuf){
-	for(unsigned i=0; i<*wLen; ++i)
-		bytes[addr+i] = *ibuf++;
+	unsigned wlen = (unsigned)words.at(0).get().size();
+	words.at(addr).set( word(wlen, ibuf) );
 }
 
-cache_block::cache_block(unsigned* size, unsigned* wLen): size(size), wLen(wLen){
-	bytes	= new uint8_t[*wLen**size];
+/*
+ *	Cache block
+*/
+
+cache_block::cache_block(unsigned size, unsigned wLen): words(size, wLen){
 	_valid	= false;
 }
 
-void cache_block::get(uint8_t* obuf, unsigned* offset) const{
-	if( offset == nullptr ){
-		// all words
-		for(unsigned i=0; i<(*wLen)*(*size); ++i)
-			*obuf++ = bytes[i];
-	}
-	else{
-		// word at offset
-		for(unsigned i=0; i<*wLen; ++i)
-			*obuf++ = *(bytes+(*offset)*(*size)+i);
-	}
+cache_block::~cache_block(void){
 }
 
-void cache_block::set(uint8_t* ibuf){
-	for(unsigned i=0; i<(*wLen)*(*size); ++i)
-		bytes[i] = *ibuf++;
+void cache_block::get(uint8_t* obuf, unsigned offset) const{
+	unsigned wlen = (unsigned)words.at(0).get().size();
+	fvec<uint8_t> word(wlen);
+	word = words.at( offset%wlen ).get();		// get word at offset
+	for(unsigned i=0; i<word.size(); ++i)
+		obuf[i] = word.at(i);							// copy bytes
+}
+
+void cache_block::get(uint8_t* obuf) const{
+	for(unsigned i=0; i<words.size(); ++i)
+		get(obuf+i*words.size(), i);					// get each word
+}
+
+void cache_block::set(unsigned offset, uint8_t* ibuf){
+	unsigned wlen = (unsigned)words.at(0).get().size();
+	words.at( offset%wlen ).set( word( wlen, ibuf ) );	// set word at offset
 	_dirty = true;
 }
 
-void cache_block::setFromMem(unsigned tag, uint8_t* ibuf){
-	_tag = tag;
+void cache_block::set(uint8_t* ibuf){
+	for(unsigned i=0; i<words.size(); ++i)
+		set(i, ibuf+i*words.size());					// set each word
+}
+
+void cache_block::load_mem(unsigned tag, uint8_t* ibuf){
 	set(ibuf);
 	_dirty = false;
 	_valid = true;

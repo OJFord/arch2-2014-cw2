@@ -32,6 +32,20 @@ private:
 	unsigned _offset;
 };
 
+class word{
+public:
+	word(unsigned, bool=false);
+	word(unsigned, uint8_t*);
+	~word(void);
+	
+	void set(fvec<uint8_t>);
+	void set(word);
+	fvec<uint8_t> get(void) const;
+	
+private:
+	fvec<uint8_t> bytes;
+};
+
 class mem_level{
 public:
 	mem_level(mem_level*);
@@ -51,9 +65,7 @@ public:
 	virtual void write(unsigned, uint8_t*);
 	
 private:
-	uint8_t*	bytes;
-	const unsigned*	wLen;
-	const unsigned*	size;
+	fvec<word>	words;
 };
 
 class cache_block{
@@ -69,9 +81,8 @@ public:
 	bool dirty(void) const;
 
 private:
-	uint8_t*	bytes;
-	const unsigned*	wLen;
-	const unsigned*	size;
+	fvec<word>	words;
+
 	unsigned	_tag;
 	bool		_valid;
 	bool		_dirty;
@@ -87,7 +98,6 @@ public:
 private:
 	std::vector<cache_block> blocks;
 	lrque<unsigned> lru;
-	unsigned* size;
 };
 
 class cache: public mem_level{
