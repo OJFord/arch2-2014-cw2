@@ -7,10 +7,16 @@
 //
 
 #include "mem_sim.h"
-#include "mem_sim_impl.h"
+#include <fstream>
 
 int main(int argc, const char * argv[]){
-	int addr, bpw, wpb, bps, spc, time_hit, time_write, time_read;
+	
+#ifdef DEBUG		// pipe input file to stdin
+	std::ifstream arq(getenv("SAMPLE_INPUT"));
+	//std::cin.rdbuf(arq.rdbuf());
+#endif
+	
+	unsigned addr, bpw, wpb, bps, spc, time_hit, time_write, time_read;
 	
 	if( argc < 8 ){
 		std::cerr << "Insufficient parameters supplied." << std::endl;
@@ -27,6 +33,9 @@ int main(int argc, const char * argv[]){
 	time_write	= atoi( argv[7] );
 	time_read	= atoi( argv[8] );
 
+	ram*	ram_h	= new ram(wpb, bpw);
+	cache*	cache_h = new cache(ram_h, spc, bps, wpb, bpw);
+
 	std::string input;
 	while( std::getline(std::cin, input) ){
 		
@@ -34,16 +43,16 @@ int main(int argc, const char * argv[]){
 			//Comment. Ignore until newline.
 		
 		else if( input.compare(0, 9, "read-req ") == 0 )
-			read( std::stringstream(input.substr(9)) );
+			read( cache_h, bpw, std::stringstream(input.substr(9)) );
 		
 		else if( input.compare(0, 10, "write-req ") == 0)
-			write( std::stringstream(input.substr(9)), bpw);
+			write( cache_h, bpw, std::stringstream(input.substr(9)) );
 		
 		else if( input.compare(0, 10, "flush-req ") == 0)
-			flush();
+			flush( cache_h );
 		
 		else if( input.compare(0, 10, "debug-req ") == 0)
-			debug();
+			debug( cache_h );
 		
 		else
 			std::cerr << "Malformed input." << std::endl;
@@ -53,8 +62,8 @@ int main(int argc, const char * argv[]){
 	exit( EXIT_SUCCESS );
 }
 
-void read( std::stringstream params ){
-	std::cout << "read-ack" << std::endl;
+void read(cache* cache_h, unsigned wlen, std::stringstream params){
+	std::cout << "read-ack ";
 	
 	std::string s, serr;
 	params >> s;
@@ -64,19 +73,36 @@ void read( std::stringstream params ){
 		exit( EXIT_FAILURE );
 	}
 
-	int addr = std::stoi(s);
+	unsigned addr = std::stoi(s);
 
 #ifdef DEBUG
-	std::cout << "Reading " << addr << std::endl;
+	std::cout << std::endl << "Reading " << addr << std::endl;
 #endif
+	
+	uint8_t buf[wlen];
+	
+	cache_h->read(buf, addr);
+	unsigned data = buf[0];
+	for(unsigned i=1; i<wlen; ++i){
+		data <<= 8;
+		data |= buf[i];
+	}
+	
+	std::cout << " " << cache_h->set_idx() << " ";
+	if( cache_h->hit() )
+		std::cout << "hit ";
+	else
+		std::cout << "miss ";
+	
+	std::cout << cache_h->access_time() << " " << data << std::endl;
 }
 
-void write( std::stringstream params, int bytesPerWord){
-	std::cout << "write-ack" << std::endl;
+void write(cache* cache_h, unsigned wlen, std::stringstream params){
+	std::cout << "write-ack " << std::endl;
 	
 	std::string s1, s2, serr;
-	int addr;
-	uint8_t data[ bytesPerWord ];
+	unsigned addr;
+	uint8_t data[wlen];
 	
 	params >> s1 >> s2;
 	
@@ -86,22 +112,32 @@ void write( std::stringstream params, int bytesPerWord){
 	}
 	
 	addr	= std::stoi(s1, nullptr, 10);
-	for(unsigned i=0; i<bytesPerWord; ++i)
+	
+	// assumes leading zeroes will be present if applicable
+	for(unsigned i=0; i<wlen; ++i)
 		data[i] = std::stoi( s2.substr(i*2, 2), nullptr, 16 );
 	
 #ifdef DEBUG
 	std::cout << "Writing ";
-	for(unsigned i=0; i<bytesPerWord; ++i)
+	for(unsigned i=0; i<wlen; ++i)
 		std::cout << std::hex << (int)data[i];
 	std::cout << " to " << addr << std::endl;
 #endif
+	
+	cache_h->write(addr, data);
+	std::cout << " " << cache_h->set_idx() << " ";
+	if( cache_h->hit() )
+		std::cout << "hit ";
+	else
+		std::cout << "miss ";
+	std::cout << cache_h->access_time() << std::endl;
 }
 
-void flush(void){
+void flush(cache* cache_h){
 	std::cout << "flush-ack" << std::endl;
 }
 
-void debug(void){
+void debug(cache* cache_h){
 	std::cout << "debug-ack-begin" << std::endl;
 	std::cout << "debug-ack-end" << std::endl;
 }

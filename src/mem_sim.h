@@ -13,9 +13,11 @@
 #include <string>
 #include <sstream>
 
-void read(std::stringstream);
-void write(std::stringstream, int);
-void flush(void);
-void debug(void);
+#include "mem_sim_impl.h"
+
+void read(cache*, unsigned, std::stringstream);
+void write(cache*, unsigned, std::stringstream);
+void flush(cache*);
+void debug(cache*);
 
 #endif
