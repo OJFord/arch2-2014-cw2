@@ -13,17 +13,17 @@ int main(int argc, const char * argv[]){
 	
 #ifdef DEBUG		// pipe input file to stdin
 	std::ifstream arq(getenv("SAMPLE_INPUT"));
-	//std::cin.rdbuf(arq.rdbuf());
+	std::cin.rdbuf(arq.rdbuf());
 #endif
 	
-	unsigned addr, bpw, wpb, bps, spc, time_hit, time_write, time_read;
+	unsigned alen, bpw, wpb, bps, spc, time_hit, time_write, time_read;
 	
 	if( argc < 8 ){
 		std::cerr << "Insufficient parameters supplied." << std::endl;
 		exit( EXIT_FAILURE );
 	}
 	
-	addr= atoi( argv[1] );
+	alen= atoi( argv[1] );
 	bpw	= atoi( argv[2] );
 	wpb	= atoi( argv[3] );
 	bps	= atoi( argv[4] );
@@ -63,8 +63,6 @@ int main(int argc, const char * argv[]){
 }
 
 void read(Cache* cache, unsigned wlen, std::stringstream params){
-	std::cout << "read-ack ";
-	
 	std::string s, serr;
 	params >> s;
 	
@@ -76,7 +74,7 @@ void read(Cache* cache, unsigned wlen, std::stringstream params){
 	unsigned addr = std::stoi(s);
 
 #ifdef DEBUG
-	std::cout << std::endl << "Reading " << addr << std::endl;
+	std::cout << "# Reading " << addr << std::endl;
 #endif
 	
 	uint8_t buf[wlen];
@@ -88,17 +86,16 @@ void read(Cache* cache, unsigned wlen, std::stringstream params){
 		data |= buf[i];
 	}
 	
-	std::cout << " " << cache->set_idx() << " ";
-	if( cache->hit() )
-		std::cout << "hit ";
-	else
-		std::cout << "miss ";
-	
-	std::cout << cache->access_time() << " " << data << std::endl;
+	std::cout
+		<< "read-ack"
+		<< " " << std::hex << std::uppercase << data
+		<< " " << cache->set_idx()
+		<< " " << (cache->hit() ? "hit" : "miss")
+		<< " " << cache->access_time()
+		<< std::endl;
 }
 
 void write(Cache* cache, unsigned wlen, std::stringstream params){
-	std::cout << "write-ack " << std::endl;
 	
 	std::string s1, s2, serr;
 	unsigned addr;
@@ -118,19 +115,20 @@ void write(Cache* cache, unsigned wlen, std::stringstream params){
 		data[i] = std::stoi( s2.substr(i*2, 2), nullptr, 16 );
 	
 #ifdef DEBUG
-	std::cout << "Writing ";
+	std::cout << "# Writing ";
 	for(unsigned i=0; i<wlen; ++i)
 		std::cout << std::hex << (int)data[i];
 	std::cout << " to " << addr << std::endl;
 #endif
 	
 	cache->write(addr, data);
-	std::cout << " " << cache->set_idx() << " ";
-	if( cache->hit() )
-		std::cout << "hit ";
-	else
-		std::cout << "miss ";
-	std::cout << cache->access_time() << std::endl;
+	
+	std::cout
+		<< "write-ack"
+		<< " " << cache->set_idx()
+		<< " " << (cache->hit() ? "hit" : "miss")
+		<< " " << cache->access_time()
+		<< std::endl;
 }
 
 void flush(Cache* cache){
