@@ -11,7 +11,6 @@
 
 #include "mem_sim_lrque.h"
 #include "mem_sim_fvec.h"
-#include <vector>
 
 #define SizeMismatchException 2
 
@@ -98,6 +97,8 @@ public:
 
 private:
 	fvec<word>	words;
+	
+	const unsigned	wordSize;
 
 	unsigned	_tag;
 	bool		_valid;
@@ -121,8 +122,11 @@ public:
 	cache_block load(unsigned, uint8_t*);
 
 private:
-	std::vector<cache_block> blocks;
-	lrque<unsigned> lru;
+	fvec<cache_block>	blocks;
+	lrque<unsigned>		lru;
+	
+	const unsigned	blockSize;
+	const unsigned	wordSize;
 };
 
 typedef enum{
@@ -143,8 +147,8 @@ public:
 	unsigned	set_idx(void) const;
 
 private:
-	std::vector<cache_set>	sets;
-	const unsigned	size;
+	fvec<cache_set>	sets;
+	
 	const unsigned	setSize;
 	const unsigned	blockSize;
 	const unsigned	wordSize;
