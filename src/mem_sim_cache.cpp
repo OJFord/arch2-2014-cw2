@@ -22,7 +22,7 @@ CacheBlock::~CacheBlock(void){
 
 void CacheBlock::get(uint8_t* obuf, unsigned offset) const{
 	fvec<uint8_t> word(wordSize);
-	word = words.at( offset%wordSize ).get();			// get word at offset
+	word = words.at( offset/wordSize ).get();			// get word at offset
 	for(unsigned i=0; i<word.size(); ++i)
 		obuf[i] = word.at(i);							// copy bytes
 }
@@ -34,7 +34,7 @@ void CacheBlock::get(uint8_t* obuf) const{
 
 void CacheBlock::set(unsigned offset, uint8_t* ibuf){
 	words.at(
-		offset%wordSize
+		offset/wordSize
 	).set( Word( wordSize, ibuf ) );					// set word at offset
 	_dirty = true;
 }
@@ -104,28 +104,34 @@ CacheBlock CacheSet::load(unsigned tag, uint8_t* ibuf){
  *	Cache
 */
 
-Cache::Cache(Ram* mem, unsigned addrSize, unsigned size,
-	unsigned setSize,  unsigned blockSize, unsigned wordSize)
- :	MemoryLevel(mem, addressLen),
+Cache::Cache(Ram* mem,	unsigned addrSize,	unsigned size,
+	unsigned setSize,	unsigned blockSize,	unsigned wordSize,
+	unsigned hitCycles,	unsigned readCycles,unsigned writeCycles)
+ :	MemoryLevel(mem, addrSize),
 	setSize(setSize),
 	blockSize(blockSize),
 	wordSize(wordSize),
-	sets(size, setSize, blockSize, wordSize){
+	sets(size, setSize, blockSize, wordSize),
+	hit_mult(hitCycles),
+	read_mult(readCycles),
+	write_mult(writeCycles){
 }
 
-void Cache::rw(rwMode mode, uint8_t* buf, unsigned addr){
+void Cache::rw(rwMode mode, uint8_t* buf, unsigned addr, bool reset){
 	
 	CacheAddress address(addr, addressLen, (unsigned)sets.size(), blockSize, wordSize);
-	_set_idx = address.idx()%sets.size();
+	_set_idx	= address.idx()%sets.size();
+	_access_time= reset ? 0 : _access_time;				// reset time only if not second call
 	
 	unsigned tag = address.tag();
 	unsigned ofst= address.offset();
 
 	CacheSet& set = sets.at(_set_idx);
-	CacheBlock* cand = set.get(tag);					// set.get, lol
+	CacheBlock* cand = set.get(tag);					// set.get, ugh
 	
 	if( cand != NULL ){									// cache hit
-		_hit = true;
+		_hit = reset ? true : _hit;						// set to hit only if not second call
+		_access_time += 1*hit_mult;
 		
 		if( mode == READ )
 			cand->get(buf, ofst);
@@ -135,7 +141,8 @@ void Cache::rw(rwMode mode, uint8_t* buf, unsigned addr){
 	}
 	else{												// cache miss
 		_hit = false;
-		
+		_access_time += 1*read_mult;
+
 		uint8_t* membuf = new uint8_t[ wordSize*blockSize ];
 		for(unsigned i=0; i<blockSize; ++i)
 			higher_mem->read(
@@ -143,23 +150,17 @@ void Cache::rw(rwMode mode, uint8_t* buf, unsigned addr){
 				( addr - ofst ) | i						// read each word in block from mem
 			);
 		
-		for(unsigned i=0; i<wordSize; ++i)
-			if( mode == READ )
-				buf[i] = ( &membuf[ofst*wordSize] )[i];	// copy each byte from word at offset
-		
-			else if( mode == WRITE )
-				set.set(tag, ofst, buf);
-		
-		delete [] membuf;
-		
 		CacheBlock evicted = set.load(tag, membuf);
-		set.set(tag, ofst, buf);						// set.set, aarrgh
 		
 		if( evicted.valid() && evicted.dirty() ){		// write back
 			uint8_t tmp[wordSize*blockSize];
 			evicted.get(tmp);
 			higher_mem->write(addr, tmp);
+			_access_time += 1*write_mult;
 		}
+		
+		rw(mode, buf, addr, false);						// go again for hit, no time/hit reset
+		
 	}
 	
 }
@@ -190,7 +191,7 @@ unsigned Cache::set_idx(void) const{
 
 //	Integer log
 unsigned log2(unsigned x){
-	unsigned n=0;
+	unsigned n=-1;
 	while(x != 0){
 		n++;
 		x >>= 1;
@@ -207,9 +208,12 @@ CacheAddress::CacheAddress( unsigned addr, unsigned addrLen, unsigned numSets,
 	len_idx	= log2(numSets);
 	len_tag	= addrLen - ( len_idx + len_ofst );
 	
+														// mask address to correct len
+	addr	&= ~( ((unsigned)-1) << (len_ofst + len_idx + len_tag) );
+	
 	_offset = addr & ~( ((unsigned)-1) << len_ofst );
-	_idx	= (addr - _offset) & ~( ((unsigned)-1) << (len_ofst + len_idx) );
-	_tag	= addr >> (len_ofst + len_tag);
+	_idx	= (addr & ~( ((unsigned)-1) << (len_ofst + len_idx) )) >> len_ofst;
+	_tag	= addr >> (len_ofst + len_idx);
 
 }
 
