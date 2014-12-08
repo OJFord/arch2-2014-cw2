@@ -91,15 +91,25 @@ characters.
 In response, your program will produce a stream of
 responses on `stdout`, describing the result of the transaction:
 
-1. Read response: "read-ack" data set-index "hit"|"miss" time 
+1. Read response (a): "read-ack" data set-index "hit"|"miss" time
+              
+2. Read response (b): "read-ack" set-index "hit"|"miss" time data
 
-2. Write response: "write-ack" set-index "hit"|"miss" time
+3. Write response: "write-ack" set-index "hit"|"miss" time
 
-3. Flush response: "flush-ack" time
+4. Flush response: "flush-ack" time
 
-4. Debug response: "debug-ack-begin"\n<lines>\n"debug-ack-end"
+5. Debug response: "debug-ack-begin"\n<lines>\n"debug-ack-end"
 
-5. Comments: "#" followed by any characters.
+6. Comments: "#" followed by any characters.
+
+(The two formats for `read-ack` are to reflect a historical
+lack of preciseness in the spec. A program should choose
+one output form to use, and it is up to consumers to
+work out which one is in effect. So this is an example
+of de-facto specification, where the existance of mutually
+incompatible standards in the wild pushes complexity
+onto the user.)
 
 `set-index` is the index of the set in which the cache
 places the address.
@@ -160,7 +170,10 @@ Your submission should be a zip file containing:
   simulator.
 
 - Any supporting files used during testing, such as test input
-  and output, and/or scripts used.
+  and output, and/or scripts used. These are not part of the
+  assessed work, they are there to explain how you arrived
+  at the solution (e.g. if external examiners are interested,
+  or marks need to be justified).
   
 The submission should be submitted via blackboard.
 
@@ -221,6 +234,13 @@ the file `direct-mapped.got` by redirecting:
 or:
 
     type direct-mapped.input | mem_sim 8 2 2 1 2 1 2 2 > direct-mapped.got
+    
+Note that the method you use to get input and output to
+your program depends on the OS you choose. As long as
+your program is C or C++, takes its parameters as
+command line arguments, its input from stdin, and
+sends output to stdout, then it will work on any
+platform/OS (which is all the spec cares about).
 
 Notes
 =====
