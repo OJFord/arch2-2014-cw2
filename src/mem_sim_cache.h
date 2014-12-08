@@ -22,17 +22,22 @@ public:
 	
 	unsigned get(void) const;
 	void set(unsigned);
+	void tag(unsigned);
 
 	unsigned addr(void) const;
 	unsigned tag(void) const;
 	unsigned idx(void) const;
 	unsigned offset(void) const;
 	
+protected:
+	unsigned len_ofst;
+	unsigned len_idx;
+	unsigned len_tag;
+	
 private:
-	unsigned _data;
-	unsigned _tag;
+	unsigned _ofst;
 	unsigned _idx;
-	unsigned _offset;
+	unsigned _tag;
 };
 
 class CacheBlock{
