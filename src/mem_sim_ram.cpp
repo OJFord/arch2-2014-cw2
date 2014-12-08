@@ -13,7 +13,7 @@
 */
 
 Ram::Ram(unsigned aLen, unsigned wLen)
-: MemoryLevel(nullptr, aLen), words(1<<(aLen-1), wLen, 0){}		// initialise mem to zeroes
+ : MemoryLevel(nullptr, aLen), words(1<<aLen, wLen, 0){}		// initialise mem to zeroes
 
 Ram::~Ram(void){
 }

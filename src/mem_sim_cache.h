@@ -98,7 +98,9 @@ typedef enum{
 
 class Cache: public MemoryLevel{
 public:
-	Cache(Ram*, unsigned, unsigned, unsigned, unsigned, unsigned);
+	Cache(Ram*, unsigned, unsigned,
+		  unsigned, unsigned, unsigned,
+		  unsigned, unsigned, unsigned);
 	
 	//	Implements MemoryLevel read/write
 	virtual void read(uint8_t*, unsigned);
@@ -110,7 +112,7 @@ public:
 	
 protected:
 	// Read/write helper
-	void rw(rwMode, uint8_t*, unsigned);
+	void rw(rwMode, uint8_t*, unsigned, bool=true);
 	
 private:
 	fvec<CacheSet>	sets;
@@ -118,6 +120,10 @@ private:
 	const unsigned	setSize;
 	const unsigned	blockSize;
 	const unsigned	wordSize;
+	
+	const unsigned	hit_mult;
+	const unsigned	read_mult;
+	const unsigned	write_mult;
 
 	bool		_hit;
 	unsigned	_access_time;

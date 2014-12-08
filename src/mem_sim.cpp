@@ -30,11 +30,11 @@ int main(int argc, const char * argv[]){
 	spc	= atoi( argv[5] );
 	
 	time_hit	= atoi( argv[6] );
-	time_write	= atoi( argv[7] );
-	time_read	= atoi( argv[8] );
+	time_read	= atoi( argv[7] );
+	time_write	= atoi( argv[8] );
 
-	Ram*	ram	= new Ram(wpb, bpw);
-	Cache*	cache = new Cache(ram, alen, spc, bps, wpb, bpw);
+	Ram*	ram	= new Ram(alen, bpw);
+	Cache*	cache = new Cache(ram, alen, spc, bps, wpb, bpw, time_hit, time_read, time_write);
 
 	std::string input;
 	while( std::getline(std::cin, input) ){
