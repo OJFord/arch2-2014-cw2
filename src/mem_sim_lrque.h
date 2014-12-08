@@ -9,21 +9,14 @@
 #ifndef LRU_CacheSim_mem_sim_lrque_h
 #define LRU_CacheSim_mem_sim_lrque_h
 
-#include <deque>
+#include "mem_sim_queue.h"
 
 template<class T>
-class lrque: private std::deque<T>{
+class lrque: public queue<T>{
 public:
-	//Push new item to queue
-	void push(const T el);
-	
-	//Pop item from queue
-	//	returns popped item
-	T pop(void);
-	
-	//Push existing item to the back of the queue
-	//	returns false if item didn't exist, true otherwise
-	bool repush(const T);
+	virtual void push(const T el);
+	virtual T pop(void);
+	virtual bool consume(const T);
 };
 
 template<class T>
@@ -39,7 +32,7 @@ T lrque<T>::pop(void){
 }
 
 template<class T>
-bool lrque<T>::repush(const T el){
+bool lrque<T>::consume(const T el){
 	for(unsigned i=0; i<std::deque<T>::size(); ++i){
 		if( std::deque<T>::at(i) == el ){
 			std::deque<T>::erase(this->begin()+i);

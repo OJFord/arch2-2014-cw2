@@ -14,5 +14,6 @@
 */
 
 #define SizeMismatchException 2
+#define IncompatibleQueueException 3
 
 #endif

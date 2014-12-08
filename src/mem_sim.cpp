@@ -7,6 +7,7 @@
 //
 
 #include "mem_sim.h"
+#include "mem_sim_lrque.h"
 #include <fstream>
 
 int main(int argc, const char * argv[]){
@@ -34,7 +35,8 @@ int main(int argc, const char * argv[]){
 	time_write	= atoi( argv[8] );
 
 	Ram*	ram	= new Ram(alen, bpw);
-	Cache*	cache = new Cache(ram, alen, spc, bps, wpb, bpw, time_hit, time_read, time_write);
+	Cache<lrque>* cache = new Cache<lrque>(ram, alen, spc, bps, wpb, bpw,
+										   time_hit, time_read, time_write);
 
 	std::string input;
 	while( std::getline(std::cin, input) ){
@@ -60,82 +62,4 @@ int main(int argc, const char * argv[]){
 	}
 	
 	exit( EXIT_SUCCESS );
-}
-
-void read(Cache* cache, unsigned wlen, std::stringstream params){
-	std::string s, serr;
-	params >> s;
-	
-	if( params >> serr ){
-		std::cerr << "Unexpected extra parameter to write-req: " << serr;
-		exit( EXIT_FAILURE );
-	}
-
-	unsigned addr = std::stoi(s);
-
-#ifdef DEBUG
-	std::cout << "# Reading " << addr << std::endl;
-#endif
-	
-	uint8_t buf[wlen];
-	
-	cache->read(buf, addr);
-	unsigned data = buf[0];
-	for(unsigned i=1; i<wlen; ++i){
-		data <<= 8;
-		data |= buf[i];
-	}
-	
-	std::cout
-		<< "read-ack"
-		<< " " << std::hex << std::uppercase << data
-		<< " " << cache->set_idx()
-		<< " " << (cache->hit() ? "hit" : "miss")
-		<< " " << cache->access_time()
-		<< std::endl;
-}
-
-void write(Cache* cache, unsigned wlen, std::stringstream params){
-	
-	std::string s1, s2, serr;
-	unsigned addr;
-	uint8_t data[wlen];
-	
-	params >> s1 >> s2;
-	
-	if( params >> serr ){
-		std::cerr << "Unexpected extra parameter to write-req: " << serr;
-		exit( EXIT_FAILURE );
-	}
-	
-	addr	= std::stoi(s1, nullptr, 10);
-	
-	// assumes leading zeroes will be present if applicable
-	for(unsigned i=0; i<wlen; ++i)
-		data[i] = std::stoi( s2.substr(i*2, 2), nullptr, 16 );
-	
-#ifdef DEBUG
-	std::cout << "# Writing ";
-	for(unsigned i=0; i<wlen; ++i)
-		std::cout << std::hex << (int)data[i];
-	std::cout << " to " << addr << std::endl;
-#endif
-	
-	cache->write(addr, data);
-	
-	std::cout
-		<< "write-ack"
-		<< " " << cache->set_idx()
-		<< " " << (cache->hit() ? "hit" : "miss")
-		<< " " << cache->access_time()
-		<< std::endl;
-}
-
-void flush(Cache* cache){
-	std::cout << "flush-ack" << std::endl;
-}
-
-void debug(Cache* cache){
-	std::cout << "debug-ack-begin" << std::endl;
-	std::cout << "debug-ack-end" << std::endl;
 }

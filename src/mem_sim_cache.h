@@ -45,7 +45,7 @@ public:
 	CacheBlock(unsigned, unsigned);
 	~CacheBlock(void);
 	
-	//gets data in word at given offset to buffer
+	// gets data in word at given offset to buffer
 	void get(uint8_t*, unsigned) const;
 	// gets all data in block
 	void get(uint8_t*) const;
@@ -72,6 +72,7 @@ private:
 	bool		_dirty;
 };
 
+template< template<class> class C >
 class CacheSet{
 public:
 	CacheSet(unsigned, unsigned, unsigned);
@@ -90,7 +91,10 @@ public:
 
 private:
 	fvec<CacheBlock>	blocks;
-	lrque<unsigned>		lru;
+	
+	// ADT to allow implementation of any compatible block replacement policy.
+	//	mem_sim_queue.h
+	queue<unsigned>*	idxq;
 	
 	const unsigned	blockSize;
 	const unsigned	wordSize;
@@ -101,13 +105,14 @@ typedef enum{
 	WRITE=1
 } rwMode;
 
+template< template<class> class C >
 class Cache: public MemoryLevel{
 public:
-	Cache(Ram*, unsigned, unsigned,
+	Cache(Ram*,		unsigned, unsigned,
 		  unsigned, unsigned, unsigned,
 		  unsigned, unsigned, unsigned);
 	
-	//	Implements MemoryLevel read/write
+	//	implements MemoryLevel read/write
 	virtual void read(uint8_t*, unsigned);
 	virtual void write(unsigned, uint8_t*);
 	
@@ -116,11 +121,11 @@ public:
 	unsigned	set_idx(void) const;
 	
 protected:
-	// Read/write helper
+	// read/write helper
 	void rw(rwMode, uint8_t*, unsigned, bool=true);
 	
 private:
-	fvec<CacheSet>	sets;
+	fvec< CacheSet<C> >	sets;
 
 	const unsigned	setSize;
 	const unsigned	blockSize;
@@ -134,5 +139,8 @@ private:
 	unsigned	_access_time;
 	unsigned	_set_idx;
 };
+
+// template class definitions
+#include "mem_sim_cache.cpp"
 
 #endif /* defined(__LRU_CacheSim__mem_sim_impl__) */

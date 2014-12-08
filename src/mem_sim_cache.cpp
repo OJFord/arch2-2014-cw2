@@ -6,7 +6,12 @@
 //  Copyright (c) 2014 OJFord. All rights reserved.
 //
 
-#include "mem_sim_cache.h"
+//	ensure only brought in by header
+//	with template class declarations
+#ifdef __LRU_CacheSim__mem_sim_impl__
+
+#include "mem_sim_exceptions.h"
+#include "mem_sim_queue.h"
 
 /*
  *	Cache block
@@ -67,33 +72,43 @@ bool CacheBlock::dirty(void) const{
  *	Cache set
 */
 
-CacheSet::CacheSet(unsigned setSize, unsigned blockSize, unsigned wordSize)
+template< template<class> class C >
+CacheSet<C>::CacheSet(unsigned setSize, unsigned blockSize, unsigned wordSize)
  :	blockSize(blockSize), wordSize(wordSize), blocks(setSize, blockSize, wordSize){
+	
+														// assert C is a queue
+	if( !std::is_base_of< queue<unsigned>, C<unsigned> >::value )
+		throw IncompatibleQueueException;
+	
+	idxq = new C<unsigned>();
 	for(unsigned i=0; i<setSize; ++i)
-		lru.push(i);									// init LRU stack
+		idxq->push(i);									// init LRU stack
 }
 
-CacheBlock* CacheSet::get(unsigned tag){
+template< template<class> class C >
+CacheBlock* CacheSet<C>::get(unsigned tag){
 	for(unsigned i=0; i<blocks.size(); ++i){			// each block
 		CacheBlock& cand = blocks.at(i);
 		
 		if( cand.valid() && cand.tag() == tag ){		// hit
-			lru.repush(i);
+			idxq->consume(i);
 			return &cand;
 		}
 	}
 	return nullptr;										// miss
 }
 
-bool CacheSet::set(unsigned tag, unsigned offset, uint8_t* data){
+template< template<class> class C >
+bool CacheSet<C>::set(unsigned tag, unsigned offset, uint8_t* data){
 	CacheBlock* match = get(tag);
 	if(match)											// hit
 		match->set(offset, data);
 	return match != NULL;
 }
 
-CacheBlock CacheSet::load(unsigned tag, uint8_t* ibuf){
-	unsigned evict_idx = lru.pop();
+template< template<class> class C >
+CacheBlock CacheSet<C>::load(unsigned tag, uint8_t* ibuf){
+	unsigned evict_idx = idxq->pop();
 	CacheBlock ret = blocks.at( evict_idx );			// grab block before it's kicked out
 	
 	blocks.at( evict_idx ).load_mem(tag, ibuf);
@@ -103,10 +118,10 @@ CacheBlock CacheSet::load(unsigned tag, uint8_t* ibuf){
 /*
  *	Cache
 */
-
-Cache::Cache(Ram* mem,	unsigned addrSize,	unsigned size,
-	unsigned setSize,	unsigned blockSize,	unsigned wordSize,
-	unsigned hitCycles,	unsigned readCycles,unsigned writeCycles)
+template< template<class> class C >
+Cache<C>::Cache(Ram* mem,	unsigned addrSize,	unsigned size,
+	unsigned setSize,		unsigned blockSize,	unsigned wordSize,
+	unsigned hitCycles,		unsigned readCycles,unsigned writeCycles)
  :	MemoryLevel(mem, addrSize),
 	setSize(setSize),
 	blockSize(blockSize),
@@ -117,16 +132,17 @@ Cache::Cache(Ram* mem,	unsigned addrSize,	unsigned size,
 	write_mult(writeCycles){
 }
 
-void Cache::rw(rwMode mode, uint8_t* buf, unsigned addr, bool reset){
+template< template<class> class C >
+void Cache<C>::rw(rwMode mode, uint8_t* buf, unsigned addr, bool reset){
 	
 	CacheAddress	address(addr, addressLen, (unsigned)sets.size(), blockSize, wordSize);
 	_set_idx		= address.idx()%sets.size();
-	_access_time	= reset ? 0 : _access_time;				// reset time only if not second call
+	_access_time	= reset ? 0 : _access_time;			// reset time only if not second call
 	
 	unsigned tag	= address.tag();
 	unsigned ofst	= address.offset();
 
-	CacheSet& set	= sets.at(_set_idx);
+	CacheSet<C>& set= sets.at(_set_idx);
 	CacheBlock* cand= set.get(tag);						// set.get, ugh
 	
 	if( cand != NULL ){									// cache hit
@@ -171,23 +187,28 @@ void Cache::rw(rwMode mode, uint8_t* buf, unsigned addr, bool reset){
 	
 }
 
-void Cache::read(uint8_t* obuf, unsigned addr){
+template< template<class> class C >
+void Cache<C>::read(uint8_t* obuf, unsigned addr){
 	Cache::rw(READ, obuf, addr);
 }
 
-void Cache::write(unsigned addr, uint8_t* ibuf){
-	Cache::rw(WRITE, ibuf, addr);
+template< template<class> class C >
+void Cache<C>::write(unsigned addr, uint8_t* ibuf){
+	Cache<C>::rw(WRITE, ibuf, addr);
 }
 
-bool Cache::hit(void) const{
+template< template<class> class C >
+bool Cache<C>::hit(void) const{
 	return _hit;
 }
 
-unsigned Cache::access_time(void) const{
+template< template<class> class C >
+unsigned Cache<C>::access_time(void) const{
 	return _access_time;
 }
 
-unsigned Cache::set_idx(void) const{
+template< template<class> class C >
+unsigned Cache<C>::set_idx(void) const{
 	return _set_idx;
 }
 
@@ -244,3 +265,5 @@ unsigned CacheAddress::idx(void) const{
 unsigned CacheAddress::tag(void) const{
 	return _tag;
 }
+
+#endif	/* defined(__LRU_CacheSim__mem_sim_impl__) */

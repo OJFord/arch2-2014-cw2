@@ -15,9 +15,86 @@
 
 #include "mem_sim_cache.h"
 
-void read(Cache*, unsigned, std::stringstream);
-void write(Cache*, unsigned, std::stringstream);
-void flush(Cache*);
-void debug(Cache*);
+template< template<class> class C >
+void read(Cache<C>* cache, unsigned wlen, std::stringstream params){
+	std::string s, serr;
+	params >> s;
+	
+	if( params >> serr ){
+		std::cerr << "Unexpected extra parameter to write-req: " << serr;
+		exit( EXIT_FAILURE );
+	}
+	
+	unsigned addr = std::stoi(s);
+	
+#ifdef DEBUG
+	std::cout << "# Reading " << addr << std::endl;
+#endif
+	
+	uint8_t buf[wlen];
+	
+	cache->read(buf, addr);
+	unsigned data = buf[0];
+	for(unsigned i=1; i<wlen; ++i){
+		data <<= 8;
+		data |= buf[i];
+	}
+	
+	std::cout
+	<< "read-ack"
+	<< " " << std::hex << std::uppercase << data
+	<< " " << cache->set_idx()
+	<< " " << (cache->hit() ? "hit" : "miss")
+	<< " " << cache->access_time()
+	<< std::endl;
+}
+
+template< template<class> class C >
+void write(Cache<C>* cache, unsigned wlen, std::stringstream params){
+	
+	std::string s1, s2, serr;
+	unsigned addr;
+	uint8_t data[wlen];
+	
+	params >> s1 >> s2;
+	
+	if( params >> serr ){
+		std::cerr << "Unexpected extra parameter to write-req: " << serr;
+		exit( EXIT_FAILURE );
+	}
+	
+	addr	= std::stoi(s1, nullptr, 10);
+	
+	// assumes leading zeroes will be present if applicable
+	for(unsigned i=0; i<wlen; ++i)
+		data[i] = std::stoi( s2.substr(i*2, 2), nullptr, 16 );
+	
+#ifdef DEBUG
+	std::cout << "# Writing ";
+	for(unsigned i=0; i<wlen; ++i)
+		std::cout << std::hex << (int)data[i];
+	std::cout << " to " << addr << std::endl;
+#endif
+	
+	cache->write(addr, data);
+	
+	std::cout
+	<< "write-ack"
+	<< " " << cache->set_idx()
+	<< " " << (cache->hit() ? "hit" : "miss")
+	<< " " << cache->access_time()
+	<< std::endl;
+}
+
+template< template<class> class C >
+void flush(Cache<C>* cache){
+	std::cout << "flush-ack" << std::endl;
+}
+
+template< template<class> class C >
+void debug(Cache<C>* cache){
+	std::cout << "debug-ack-begin" << std::endl;
+	std::cout << "debug-ack-end" << std::endl;
+}
 
 #endif
