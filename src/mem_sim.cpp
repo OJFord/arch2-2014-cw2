@@ -6,9 +6,11 @@
 //  Copyright (c) 2014 OJFord. All rights reserved.
 //
 
+#include <fstream>
+
 #include "mem_sim.h"
 #include "mem_sim_lrque.h"
-#include <fstream>
+#include "mem_sim_exceptions.h"
 
 int main(int argc, const char * argv[]){
 	
@@ -40,27 +42,35 @@ int main(int argc, const char * argv[]){
 	Cache<lrque>* cache = new Cache<lrque>(ram, alen, spc, bps, wpb, bpw,
 										   time_hit, time_read, time_write);
 
-	std::string input;
-	while( std::getline(std::cin, input) ){
-		
-		if( input.compare(0, 1, "#") == 0 );
-			//Comment. Ignore until newline.
-		
-		else if( input.compare(0, 9, "read-req ") == 0 )
-			read( cache, bpw, std::stringstream(input.substr(9)) );
-		
-		else if( input.compare(0, 10, "write-req ") == 0)
-			write( cache, bpw, std::stringstream(input.substr(9)) );
-		
-		else if( input == "flush-req" )
-			flush( cache );
-		
-		else if( input == "debug-req" )
-			debug( cache );
-		
-		else
-			std::cerr << "Malformed input." << std::endl;
-		
+	try{
+		std::string input;
+		while( std::getline(std::cin, input) ){
+			
+			if( input.compare(0, 1, "#") == 0 );
+				//Comment. Ignore until newline.
+			
+			else if( input.compare(0, 9, "read-req ") == 0 )
+				read( cache, bpw, std::stringstream(input.substr(9)) );
+			
+			else if( input.compare(0, 10, "write-req ") == 0)
+				write( cache, bpw, std::stringstream(input.substr(9)) );
+			
+			else if( input == "flush-req" )
+				flush( cache );
+			
+			else if( input == "debug-req" )
+				debug( cache );
+			
+			else
+				std::cerr << "Malformed input." << std::endl;
+			
+		}
+	} catch (CacheException e) {
+		std::cerr << "Error processing input: " << e.what() << std::endl;
+		exit( EXIT_FAILURE );
+	} catch (...) {
+		std::cerr << "Error processing input." << std::endl;
+		exit( EXIT_FAILURE );
 	}
 	
 	exit( EXIT_SUCCESS );

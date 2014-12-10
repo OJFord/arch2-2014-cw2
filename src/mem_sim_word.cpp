@@ -28,7 +28,9 @@ fvec<uint8_t> Word::get(void) const{
 
 void Word::set(fvec<uint8_t> idata){
 	if( idata.size() != fvec<uint8_t>::size() )
-		throw SizeMismatchException;
+		throw InvalidSizeException(
+			"Length of input data does not match word length."
+		);
 	
 	fvec<uint8_t>::operator=(idata);
 }

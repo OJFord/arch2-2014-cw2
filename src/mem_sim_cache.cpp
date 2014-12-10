@@ -140,7 +140,9 @@ CacheSet<C>::CacheSet(unsigned setSize, unsigned blockSize, unsigned wordSize)
 	
 														// assert C is a queue
 	if( !std::is_base_of< queue<unsigned>, C<unsigned> >::value )
-		throw IncompatibleQueueException;
+		throw IncompatibleQueueException(
+			"Template parameter must be class derived from queue."
+		);
 	
 	idxq = new C<unsigned>;
 	for(unsigned i=0; i<setSize; ++i)

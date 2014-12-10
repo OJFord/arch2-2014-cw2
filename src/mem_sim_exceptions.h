@@ -9,11 +9,23 @@
 #ifndef LRU_CacheSim_mem_sim_exceptions_h
 #define LRU_CacheSim_mem_sim_exceptions_h
 
-/*
- *	Lazy 'exceptions'...
-*/
+class CacheException: public std::exception{
+public:
+	CacheException(const char* s): _what(s){};
+	
+	using std::exception::what;
 
-#define SizeMismatchException 2
-#define IncompatibleQueueException 3
+protected:
+	const char* _what;
+};
+
+class InvalidSizeException: public CacheException{
+public:
+	InvalidSizeException(const char* s): CacheException(s){};
+};
+class IncompatibleQueueException: public CacheException{
+public:
+	IncompatibleQueueException(const char* s): CacheException(s){};
+};
 
 #endif
