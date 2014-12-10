@@ -35,7 +35,7 @@ template<class T>
 bool lrque<T>::consume(const T el){
 	for(unsigned i=0; i<std::deque<T>::size(); ++i){
 		if( std::deque<T>::at(i) == el ){
-			std::deque<T>::erase(this->begin()+i);
+			std::deque<T>::erase(std::deque<T>::begin()+i);
 			push(el);
 			return true;
 		}

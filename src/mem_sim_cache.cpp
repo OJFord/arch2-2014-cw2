@@ -142,7 +142,7 @@ CacheSet<C>::CacheSet(unsigned setSize, unsigned blockSize, unsigned wordSize)
 	if( !std::is_base_of< queue<unsigned>, C<unsigned> >::value )
 		throw IncompatibleQueueException;
 	
-	idxq = new C<unsigned>();
+	idxq = new C<unsigned>;
 	for(unsigned i=0; i<setSize; ++i)
 		idxq->push(i);									// init LRU stack
 }
@@ -174,6 +174,7 @@ CacheBlock CacheSet<C>::load(unsigned tag, uint8_t* ibuf){
 	CacheBlock ret = blocks.at( evict_idx );			// grab block before it's kicked out
 	
 	blocks.at( evict_idx ).load_mem(tag, ibuf);
+	idxq->push( evict_idx );
 	return ret;											// return old block for write back
 }
 
