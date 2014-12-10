@@ -11,7 +11,7 @@
 
 #include "mem_sim_fvec.h"
 
-class Word{
+class Word: private fvec<uint8_t>{
 public:
 	Word(unsigned, bool=false);
 	Word(unsigned, uint8_t*);

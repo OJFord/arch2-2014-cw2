@@ -177,7 +177,7 @@ void Cache<C>::rw(rwMode mode, uint8_t* buf, unsigned addr, bool reset){
 				(unsigned)sets.size(), blockSize, wordSize);
 			oldAddr.tag( evicted.tag() );
 			
-			higher_mem->write(oldAddr.addr(), tmp);
+			higher_mem->write(oldAddr(), tmp);
 			_access_time += 1*write_mult;
 		}
 		
