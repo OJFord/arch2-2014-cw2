@@ -13,16 +13,22 @@
 
 class Word: private fvec<uint8_t>{
 public:
+	// optionally zeroes the constructed word
 	Word(unsigned, bool=false);
+	
+	// constructs from word-sized buffer
 	Word(unsigned, uint8_t*);
+
 	~Word(void);
 	
+	// sets Word from fvec
 	void set(fvec<uint8_t>);
-	void set(Word);
-	fvec<uint8_t> get(void) const;
 	
-private:
-	fvec<uint8_t> bytes;
+	// copy setter
+	void set(Word);
+	
+	// getter
+	fvec<uint8_t> get(void) const;
 };
 
 #endif /* defined(__LRU_CacheSim__mem_sim_word__) */

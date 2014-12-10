@@ -18,6 +18,7 @@ public:
 	Ram(unsigned, unsigned);
 	~Ram(void);
 	
+	// implements MemoryLevel read/write
 	virtual void read(uint8_t*, unsigned);
 	virtual void write(unsigned, uint8_t*);
 	

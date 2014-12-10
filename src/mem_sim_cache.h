@@ -72,9 +72,10 @@ public:
 	// loads a block from memory with given tag from buffer
 	void load_mem(unsigned, uint8_t*);
 	
+	// getters for tag field, valid; dirty bits
 	unsigned tag(void) const;
-	bool valid(void) const;
-	bool dirty(void) const;
+	bool	valid(void) const;
+	bool	dirty(void) const;
 
 private:
 	fvec<Word>	words;
@@ -111,6 +112,8 @@ private:
 	fvec<CacheBlock>	blocks;
 	
 	// ADT to allow implementation of any compatible block replacement policy.
+	//	('compatible' is still quite restricting - unknown if used for read
+	//	or write, for example).
 	//	mem_sim_queue.h
 	queue<unsigned>*	idxq;
 	

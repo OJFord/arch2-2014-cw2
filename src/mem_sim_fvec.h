@@ -21,10 +21,8 @@ public:
 	fvec(unsigned size, Args&& ...args);
 	~fvec(void);
 	
-	T at(unsigned) const;
-	T& at(unsigned);
-	
-	unsigned long size(void) const;
+	using std::vector<T>::at;
+	using std::vector<T>::size;
 };
 
 template<class T>template<class ...Args>
@@ -34,21 +32,6 @@ fvec<T>::fvec(unsigned size, Args&& ...args){
 
 template<class T>
 fvec<T>::~fvec(void){
-}
-
-template<class T>
-T fvec<T>::at(unsigned idx) const{
-	return std::vector<T>::at(idx);
-}
-
-template<class T>
-T& fvec<T>::at(unsigned idx){
-	return std::vector<T>::at(idx);
-}
-
-template<class T>
-unsigned long fvec<T>::size(void) const{
-	return std::vector<T>::size();
 }
 
 #endif

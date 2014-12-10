@@ -14,6 +14,68 @@
 #include "mem_sim_queue.h"
 
 /*
+ * Cache address
+ */
+
+//	Integer log
+unsigned log2(unsigned x){
+	unsigned n=-1;
+	while(x != 0){
+		n++;
+		x >>= 1;
+	}
+	return n;
+}
+
+CacheAddress::CacheAddress( unsigned addr, unsigned addrLen, unsigned numSets,
+						   unsigned wordsPerBlock, unsigned bytesPerWord ){
+	
+	len_ofst= log2(wordsPerBlock*bytesPerWord);
+	len_idx	= log2(numSets);
+	len_tag	= addrLen - ( len_idx + len_ofst );
+	
+	// mask address to correct len
+	addr	&= ~( ((unsigned)-1) << (len_ofst + len_idx + len_tag) );
+	
+	_ofst = addr & ~( ((unsigned)-1) << len_ofst );
+	_idx	= (addr & ~( ((unsigned)-1) << (len_ofst + len_idx) )) >> len_ofst;
+	_tag	= addr >> (len_ofst + len_idx);
+	
+}
+
+CacheAddress::CacheAddress( unsigned tag, unsigned idx, unsigned ofst,
+						   unsigned addrLen, unsigned numSets, unsigned wordsPerBlock, unsigned bytesPerWord )
+:	CacheAddress(0, addrLen, numSets, wordsPerBlock, bytesPerWord){
+	_tag = tag;
+	_idx = idx;
+	_ofst= ofst;
+}
+
+void CacheAddress::tag(unsigned tag){
+	_tag	=	tag;
+}
+
+unsigned CacheAddress::operator()(void) const{
+	unsigned addr=0;
+	addr |= _tag << (len_ofst+len_idx);
+	addr |= _idx << len_ofst;
+	addr |= _ofst;
+	return addr;
+}
+
+unsigned CacheAddress::offset(void) const{
+	return _ofst;
+}
+
+unsigned CacheAddress::idx(void) const{
+	return _idx;
+}
+
+unsigned CacheAddress::tag(void) const{
+	return _tag;
+}
+
+/*
  *	Cache block
 */
 
@@ -237,60 +299,6 @@ unsigned Cache<C>::access_time(void) const{
 template< template<class> class C >
 unsigned Cache<C>::set_idx(void) const{
 	return _set_idx;
-}
-
-/*
- * Cache address
-*/
-
-//	Integer log
-unsigned log2(unsigned x){
-	unsigned n=-1;
-	while(x != 0){
-		n++;
-		x >>= 1;
-	}
-	return n;
-}
-
-CacheAddress::CacheAddress( unsigned addr, unsigned addrLen, unsigned numSets,
-	unsigned wordsPerBlock, unsigned bytesPerWord ){
-	
-	len_ofst= log2(wordsPerBlock*bytesPerWord);
-	len_idx	= log2(numSets);
-	len_tag	= addrLen - ( len_idx + len_ofst );
-	
-														// mask address to correct len
-	addr	&= ~( ((unsigned)-1) << (len_ofst + len_idx + len_tag) );
-	
-	_ofst = addr & ~( ((unsigned)-1) << len_ofst );
-	_idx	= (addr & ~( ((unsigned)-1) << (len_ofst + len_idx) )) >> len_ofst;
-	_tag	= addr >> (len_ofst + len_idx);
-
-}
-
-void CacheAddress::tag(unsigned tag){
-	_tag	=	tag;
-}
-
-unsigned CacheAddress::addr(void) const{
-	unsigned addr=0;
-	addr |= _tag << (len_ofst+len_idx);
-	addr |= _idx << len_ofst;
-	addr |= _ofst;
-	return addr;
-}
-
-unsigned CacheAddress::offset(void) const{
-	return _ofst;
-}
-
-unsigned CacheAddress::idx(void) const{
-	return _idx;
-}
-
-unsigned CacheAddress::tag(void) const{
-	return _tag;
 }
 
 #endif	/* defined(__LRU_CacheSim__mem_sim_impl__) */

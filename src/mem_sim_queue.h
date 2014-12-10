@@ -14,10 +14,11 @@
 template<class T>
 class queue: protected std::deque<T>{
 public:
-	// Pushes an item onto the queue
+	// pushes an item onto the queue
 	virtual void push(T)	= 0;
 	
-	// Removes and returns an item from the queue
+	// removes an item from the queue
+	//	returns removed item
 	virtual T pop(void)		= 0;
 	
 	// Consumes somehow an index; may cause some action
