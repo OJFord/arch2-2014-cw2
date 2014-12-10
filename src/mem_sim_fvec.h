@@ -12,8 +12,9 @@
 #include <vector>
 
 /*
- *	Vector with length fixed on initialisation
+ *	Vector with length fixed on construction
 */
+
 template<class T>
 class fvec: private std::vector<T>{
 public:
@@ -32,6 +33,13 @@ fvec<T>::fvec(unsigned size, Args&& ...args){
 
 template<class T>
 fvec<T>::~fvec(void){
+}
+
+template<class T>
+std::ostream& operator<<(std::ostream& os, fvec<T> fv){
+	for(unsigned i=0; i<fv.size(); ++i)
+		os << fv.at(i);
+	return os;
 }
 
 #endif

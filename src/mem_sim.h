@@ -28,7 +28,9 @@ void read(Cache<C>* cache, unsigned wlen, std::stringstream params){
 	unsigned addr = std::stoi(s);
 	
 #ifdef DEBUG
+	std::cout << std::showbase << std::hex;
 	std::cout << "# Reading " << addr << std::endl;
+	std::cout << std::noshowbase;
 #endif
 	
 	uint8_t buf[wlen];
@@ -72,8 +74,11 @@ void write(Cache<C>* cache, unsigned wlen, std::stringstream params){
 #ifdef DEBUG
 	std::cout << "# Writing ";
 	for(unsigned i=0; i<wlen; ++i)
-		std::cout << std::hex << (int)data[i];
+		std::cout << (int)data[i];
+	
+	std::cout << std::showbase;
 	std::cout << " to " << addr << std::endl;
+	std::cout << std::noshowbase;
 #endif
 	
 	cache->write(addr, data);

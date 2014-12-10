@@ -285,7 +285,46 @@ void Cache<C>::flush(void){
 
 template< template<class> class C >
 std::ostream& Cache<C>::debug(std::ostream& os) const{
-	return os << "# debug output" << std::endl;
+	
+	os << "#" << std::endl << "# Cache Data : {" << std::endl;
+	
+	for(unsigned i=0; i<sets.size(); ++i){
+		const CacheSet<C>& set = sets.at(i);
+		os << "# \tS" << i << " : {" << std::endl;
+		
+		for(unsigned j=0; j<setSize; ++j){
+			const CacheBlock& block = set.blocks.at(j);
+			unsigned blockNum = ( block.tag() << log2( (unsigned)sets.size() ) ) | i;
+			os << "# \t\tB" << blockNum << " : {" << std::endl;
+
+			for(unsigned k=0; k<blockSize; ++k){
+				const Word& word = block.words.at(k);
+				os << "# \t\t\t0x";
+				
+				for(unsigned l=0; l<wordSize; ++l)
+					os << std::hex << (unsigned)word.get().at(l);
+				os << (k+1<sets.size() ? "," : "") << std::endl;
+			}
+			os << "# \t\t}" << (j+1<sets.size() ? "," : "") << std::endl;
+		}
+		os << "# \t}" << (i+1<sets.size() ? "," : "") << std::endl;
+	}
+	
+	os << "#" << std::endl << "# Block Replace Queue : {" << std::endl;
+	
+	for(unsigned i=0; i<sets.size(); ++i){
+		const CacheSet<C>& set = sets.at(i);
+		os << "# \tS" << i << " : { " << std::endl;
+		
+		std::vector<unsigned> queue = set.idxq->dump();
+		for(unsigned j=0; j<setSize; ++j){
+			os << "# \t\tS" << i << "[" << queue.at(j) << "]";
+			os << (j+1<setSize ? ", " : "") << std::endl;
+		}
+		os << "# \t}" << std::endl;
+	}
+	
+	return os << "# }" << std::endl << "#" << std::endl;
 }
 
 
