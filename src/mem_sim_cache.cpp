@@ -18,7 +18,7 @@
 */
 
 CacheBlock::CacheBlock(unsigned size, unsigned wLen)
- : wordSize(wLen), words(size, wLen){
+ : words(size, wLen), wordSize(wLen){
 	_valid	= false;
 }
 
@@ -27,7 +27,7 @@ CacheBlock::~CacheBlock(void){
 
 void CacheBlock::get(uint8_t* obuf, unsigned offset) const{
 	fvec<uint8_t> word(wordSize);
-	word = words.at( offset/wordSize ).get();			// get word at offset
+	word = words.at( offset/wordSize ).get();				// get word at offset
 	for(unsigned i=0; i<word.size(); ++i)
 		obuf[i] = word.at(i);							// copy bytes
 }
@@ -46,7 +46,7 @@ void CacheBlock::set(unsigned offset, uint8_t* ibuf){
 
 void CacheBlock::set(uint8_t* ibuf){
 	for(unsigned i=0; i<words.size(); ++i)
-		set(i*wordSize, ibuf+i*words.size());					// set each word
+		set(i*wordSize, ibuf+i*words.size());			// set each word
 }
 
 void CacheBlock::load_mem(unsigned tag, uint8_t* ibuf){
@@ -74,7 +74,7 @@ bool CacheBlock::dirty(void) const{
 
 template< template<class> class C >
 CacheSet<C>::CacheSet(unsigned setSize, unsigned blockSize, unsigned wordSize)
- :	blockSize(blockSize), wordSize(wordSize), blocks(setSize, blockSize, wordSize){
+ :	blocks(setSize, blockSize, wordSize), blockSize(blockSize), wordSize(wordSize){
 	
 														// assert C is a queue
 	if( !std::is_base_of< queue<unsigned>, C<unsigned> >::value )
@@ -122,11 +122,11 @@ template< template<class> class C >
 Cache<C>::Cache(Ram* mem,	unsigned addrSize,	unsigned size,
 	unsigned setSize,		unsigned blockSize,	unsigned wordSize,
 	unsigned hitCycles,		unsigned readCycles,unsigned writeCycles)
- :	MemoryLevel(mem, addrSize),
+:	MemoryLevel(mem, addrSize),
+	sets(size, setSize, blockSize, wordSize),
 	setSize(setSize),
 	blockSize(blockSize),
 	wordSize(wordSize),
-	sets(size, setSize, blockSize, wordSize),
 	hit_mult(hitCycles),
 	read_mult(readCycles),
 	write_mult(writeCycles){
