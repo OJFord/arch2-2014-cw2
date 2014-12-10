@@ -198,6 +198,33 @@ void Cache<C>::write(unsigned addr, uint8_t* ibuf){
 }
 
 template< template<class> class C >
+void Cache<C>::flush(void){
+	
+	for(unsigned i=0; i<sets.size(); ++i){
+		CacheSet<C>& set = sets.at(i);
+		
+		for(unsigned j=0; j<setSize; ++j){
+			CacheBlock& block = set.blocks.at(j);
+			
+			if( block.valid() && block.dirty() ){
+				uint8_t buf[ blockSize*wordSize ];
+				block.get(buf);
+				CacheAddress addr(	block.tag(), i, 0,
+					addressLen, (unsigned)sets.size(), blockSize, wordSize );
+				higher_mem->write(addr(), buf);
+				block._dirty = false;
+			}
+		}
+	}
+}
+
+template< template<class> class C >
+std::ostream& Cache<C>::debug(std::ostream& os) const{
+	return os << "# debug output" << std::endl;
+}
+
+
+template< template<class> class C >
 bool Cache<C>::hit(void) const{
 	return _hit;
 }

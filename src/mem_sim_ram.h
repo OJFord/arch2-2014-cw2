@@ -23,6 +23,9 @@ public:
 	
 private:
 	fvec<Word>	words;
+	
+	// nothing to ensure consistency with
+	virtual void flush(void){};
 };
 
 

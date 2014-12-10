@@ -35,6 +35,8 @@ int main(int argc, const char * argv[]){
 	time_write	= atoi( argv[8] );
 
 	Ram*	ram	= new Ram(alen, bpw);
+	
+	// LRU block replacement policy
 	Cache<lrque>* cache = new Cache<lrque>(ram, alen, spc, bps, wpb, bpw,
 										   time_hit, time_read, time_write);
 
@@ -50,10 +52,10 @@ int main(int argc, const char * argv[]){
 		else if( input.compare(0, 10, "write-req ") == 0)
 			write( cache, bpw, std::stringstream(input.substr(9)) );
 		
-		else if( input.compare(0, 10, "flush-req ") == 0)
+		else if( input == "flush-req" )
 			flush( cache );
 		
-		else if( input.compare(0, 10, "debug-req ") == 0)
+		else if( input == "debug-req" )
 			debug( cache );
 		
 		else

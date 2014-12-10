@@ -89,11 +89,13 @@ void write(Cache<C>* cache, unsigned wlen, std::stringstream params){
 template< template<class> class C >
 void flush(Cache<C>* cache){
 	std::cout << "flush-ack" << std::endl;
+	cache->flush();
 }
 
 template< template<class> class C >
 void debug(Cache<C>* cache){
 	std::cout << "debug-ack-begin" << std::endl;
+	cache->debug(std::cout);
 	std::cout << "debug-ack-end" << std::endl;
 }
 

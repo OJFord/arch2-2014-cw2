@@ -19,6 +19,7 @@ public:
 	
 	virtual void read(uint8_t*, unsigned) = 0;
 	virtual void write(unsigned, uint8_t*) = 0;
+	virtual void flush(void) = 0;
 	
 protected:
 	MemoryLevel*	higher_mem;

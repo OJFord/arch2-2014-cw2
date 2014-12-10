@@ -18,13 +18,22 @@
 
 class CacheAddress{
 public:
-	CacheAddress(unsigned, unsigned, unsigned, unsigned, unsigned);
+	// constructs from address
+	CacheAddress(unsigned,
+				 unsigned, unsigned, unsigned, unsigned);
 	
-	unsigned get(void) const;
-	void set(unsigned);
+	// constructs from tag, index, offset
+	CacheAddress(unsigned, unsigned, unsigned,
+				 unsigned, unsigned, unsigned, unsigned);
+	
+	// instances are callable
+	//	returns address
+	unsigned operator()(void) const;
+	
+	// sets tag, leaving index and offset intact
 	void tag(unsigned);
-
-	unsigned addr(void) const;
+	
+	// getters for fields within address
 	unsigned tag(void) const;
 	unsigned idx(void) const;
 	unsigned offset(void) const;
@@ -39,6 +48,11 @@ private:
 	unsigned _idx;
 	unsigned _tag;
 };
+
+
+// forward declaration of Cache
+template< template<class> class C >
+class Cache;
 
 class CacheBlock{
 public:
@@ -70,6 +84,10 @@ private:
 	unsigned	_tag;
 	bool		_valid;
 	bool		_dirty;
+	
+	// friend flush function to allow clear of dirty bit
+	template< template<class> class C >
+	friend void Cache<C>::flush(void);
 };
 
 template< template<class> class C >
@@ -98,6 +116,8 @@ private:
 	
 	const unsigned	blockSize;
 	const unsigned	wordSize;
+	
+	friend void Cache<C>::flush(void);
 };
 
 typedef enum{
@@ -115,6 +135,9 @@ public:
 	//	implements MemoryLevel read/write
 	virtual void read(uint8_t*, unsigned);
 	virtual void write(unsigned, uint8_t*);
+	virtual void flush(void);
+	
+	std::ostream& debug(std::ostream&) const;
 	
 	bool		hit(void) const;
 	unsigned	access_time(void) const;
