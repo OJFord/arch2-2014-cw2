@@ -10,6 +10,8 @@
 //	with template class declarations
 #ifdef __LRU_CacheSim__mem_sim_impl__
 
+#include <iomanip>
+
 #include "mem_sim_exceptions.h"
 #include "mem_sim_queue.h"
 
@@ -89,7 +91,7 @@ CacheBlock::~CacheBlock(void){
 
 void CacheBlock::get(uint8_t* obuf, unsigned offset) const{
 	fvec<uint8_t> word(wordSize);
-	word = words.at( offset/wordSize ).get();				// get word at offset
+	word = words.at( offset/wordSize ).get();			// get word at offset
 	for(unsigned i=0; i<word.size(); ++i)
 		obuf[i] = word.at(i);							// copy bytes
 }
@@ -136,8 +138,9 @@ bool CacheBlock::dirty(void) const{
 
 template< template<class> class C >
 CacheSet<C>::CacheSet(unsigned setSize, unsigned blockSize, unsigned wordSize)
- :	blocks(setSize, blockSize, wordSize), blockSize(blockSize), wordSize(wordSize){
-	
+ :	blocks(setSize, blockSize, wordSize),
+	blockSize(blockSize),
+	wordSize(wordSize) {
 														// assert C is a queue
 	if( !std::is_base_of< queue<unsigned>, C<unsigned> >::value )
 		throw IncompatibleQueueException(
@@ -182,6 +185,7 @@ CacheBlock CacheSet<C>::load(unsigned tag, uint8_t* ibuf){
 /*
  *	Cache
 */
+
 template< template<class> class C >
 Cache<C>::Cache(Ram* mem,	unsigned addrSize,	unsigned size,
 	unsigned setSize,		unsigned blockSize,	unsigned wordSize,
@@ -212,6 +216,13 @@ void Cache<C>::rw(rwMode mode, uint8_t* buf, unsigned addr, bool reset){
 	if( cand != NULL ){									// cache hit
 		_hit = reset ? true : _hit;						// set to hit only if not second call
 		_access_time += 1*hit_mult;
+		
+#ifdef DEBUG
+		unsigned blockNum = cand->tag();
+		blockNum <<= log2( (unsigned)sets.size() );
+		blockNum |= _set_idx;
+		std::cout << "# B" << blockNum << std::endl;
+#endif
 		
 		if( mode == READ )
 			cand->get(buf, ofst);
@@ -311,8 +322,10 @@ std::ostream& Cache<C>::debug(std::ostream& os) const{
 				const Word& word = block.words.at(k);
 				os << "# \t\t\t0x";
 				
-				for(unsigned l=0; l<wordSize; ++l)
-					os << std::hex << (unsigned)word.get().at(l);
+				for(unsigned l=0; l<wordSize; ++l){
+					os << std::hex << std::setfill('0') << std::setw(wordSize*2);
+					os << (unsigned)word.get().at(l);
+				}
 				os << (k+1<sets.size() ? "," : "") << std::endl;
 			}
 			os << "# \t\t}" << (j+1<sets.size() ? "," : "") << std::endl;

@@ -12,6 +12,7 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <iomanip>
 
 #include "mem_sim_cache.h"
 
@@ -44,7 +45,7 @@ void read(Cache<C>* cache, unsigned wlen, std::stringstream params){
 	
 	std::cout
 	<< "read-ack"
-	<< " " << std::hex << std::uppercase << data
+	<< " " << std::hex << std::uppercase << std::setfill('0') << std::setw(wlen*2) << data
 	<< " " << cache->set_idx()
 	<< " " << (cache->hit() ? "hit" : "miss")
 	<< " " << cache->access_time()
@@ -74,7 +75,7 @@ void write(Cache<C>* cache, unsigned wlen, std::stringstream params){
 #ifdef DEBUG
 	std::cout << "# Writing ";
 	for(unsigned i=0; i<wlen; ++i)
-		std::cout << (int)data[i];
+		std::cout << std::setfill('0') << std::setw(2) << (int)data[i];
 	
 	std::cout << std::showbase;
 	std::cout << " to " << addr << std::endl;

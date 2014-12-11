@@ -91,7 +91,7 @@ private:
 	friend void Cache<C>::flush(void);
 };
 
-template< template<class> class C >
+template< template<class> class Q >
 class CacheSet{
 public:
 	CacheSet(unsigned, unsigned, unsigned);
@@ -109,7 +109,7 @@ public:
 	CacheBlock load(unsigned, uint8_t*);
 
 private:
-	fvec<CacheBlock>	blocks;
+	fvec<CacheBlock>blocks;
 	
 	// ADT to allow implementation of any compatible block replacement policy.
 	//	('compatible' is still quite restricting - unknown if used for read
@@ -121,8 +121,8 @@ private:
 	const unsigned	wordSize;
 	
 	// allow flush, debug to access all blocks by index, rather than tag
-	friend void Cache<C>::flush(void);
-	friend std::ostream& Cache<C>::debug(std::ostream&) const;
+	friend void Cache<Q>::flush(void);
+	friend std::ostream& Cache<Q>::debug(std::ostream&) const;
 };
 
 typedef enum{
@@ -144,6 +144,7 @@ public:
 	
 	std::ostream& debug(std::ostream&) const;
 	
+	//	getters for hit, access time, set index
 	bool		hit(void) const;
 	unsigned	access_time(void) const;
 	unsigned	set_idx(void) const;
