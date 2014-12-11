@@ -195,9 +195,9 @@ Cache<C>::Cache(Ram* mem,	unsigned addrSize,	unsigned size,
 	setSize(setSize),
 	blockSize(blockSize),
 	wordSize(wordSize),
-	hit_mult(hitCycles),
-	read_mult(readCycles),
-	write_mult(writeCycles){
+	hit_time(hitCycles),
+	read_time(readCycles),
+	write_time(writeCycles){
 }
 
 template< template<class> class C >
@@ -215,7 +215,7 @@ void Cache<C>::rw(rwMode mode, uint8_t* buf, unsigned addr, bool reset){
 	
 	if( cand != NULL ){									// cache hit
 		_hit = reset ? true : _hit;						// set to hit only if not second call
-		_access_time += 1*hit_mult;
+		_access_time += 1*hit_time;
 		
 #ifdef DEBUG
 		unsigned blockNum = cand->tag();
@@ -232,7 +232,7 @@ void Cache<C>::rw(rwMode mode, uint8_t* buf, unsigned addr, bool reset){
 	}
 	else{												// cache miss
 		_hit = false;
-		_access_time += 1*read_mult;
+		_access_time += read_time;
 
 		uint8_t* membuf = new uint8_t[ wordSize*blockSize ];
 		for(unsigned i=0; i<blockSize; ++i)
@@ -248,18 +248,16 @@ void Cache<C>::rw(rwMode mode, uint8_t* buf, unsigned addr, bool reset){
 			uint8_t tmp[wordSize*blockSize];
 			evicted.get(tmp);
 			
-			CacheAddress oldAddr( addr, addressLen,
+			CacheAddress oldAddr( addr, addressLen,		// reconstruct the address that was loaded here
 				(unsigned)sets.size(), blockSize, wordSize);
 			oldAddr.tag( evicted.tag() );
 			
 			higher_mem->write(oldAddr()-oldAddr.offset(), tmp);
-			_access_time += 1*write_mult;
+			_access_time += write_time;
 		}
 		
 		rw(mode, buf, addr, false);						// go again for hit, no time/hit reset
-		
 	}
-	
 }
 
 template< template<class> class C >
@@ -276,20 +274,22 @@ template< template<class> class C >
 void Cache<C>::flush(void){
 	_access_time = 0;
 	
-	for(unsigned i=0; i<sets.size(); ++i){
+	for(unsigned i=0; i<sets.size(); ++i){				// each set
 		CacheSet<C>& set = sets.at(i);
 		
-		for(unsigned j=0; j<setSize; ++j){
+		for(unsigned j=0; j<setSize; ++j){				// each block
 			CacheBlock& block = set.blocks.at(j);
 			
-			if( block.valid() && block.dirty() ){
+			if( block.valid() && block.dirty() ){		// needs write back
 				uint8_t buf[ blockSize*wordSize ];
 				block.get(buf);
-				CacheAddress addr(	block.tag(), i, 0,
+				
+				CacheAddress addr(	block.tag(), i, 0,	// reconstruct address
 					addressLen, (unsigned)sets.size(), blockSize, wordSize );
+				
 				higher_mem->write(addr(), buf);
-				_access_time += 1*write_mult;
-				block._dirty = false;
+				_access_time += write_time;
+				block._dirty = false;					// now consistent
 			}
 		}
 	}
@@ -300,29 +300,64 @@ std::ostream& Cache<C>::debug(std::ostream& os) const{
 	
 	os << "#" << std::endl << "# Cache Data : {" << std::endl;
 	
+	// vector vector will allow looking up which block number occupies which slot in set
+	//	used for reference in printing block replacement queue status
 	std::vector< std::vector<unsigned> > blockNums;
 	
-	for(unsigned i=0; i<sets.size(); ++i){
+	/*	Ugly code, for pretty output:
+	 *
+	 *	Cache Data : {
+	 *		S0 : {
+	 *			B4 : {
+	 *				0x1234,
+	 *				0x0020
+	 *			},
+	 *			BA : {
+	 *				0x0000,
+	 *				0x6FD1
+	 *			}
+	 *		},
+	 *		S1 : {
+	 *		}
+	 *	}
+	 *
+	 *	Block Replacement Queue : {
+	 *		S0 : [
+	 *			BA,
+	 *			B4
+	 *		],
+	 *		S1 : [
+	 *		]
+	 *	}
+	 *
+	 *	For example.
+	*/
+	
+	
+	for(unsigned i=0; i<sets.size(); ++i){				// each set
 		const CacheSet<C>& set = sets.at(i);
 		os << "# \tS" << i << " : {" << std::endl;
 		
 		std::vector<unsigned> tmp;
-		for(unsigned j=0; j<setSize; ++j){
+		for(unsigned j=0; j<setSize; ++j){				// each block
 			const CacheBlock& block = set.blocks.at(j);
 			
 			if( !block.valid() )
-				continue;
+				continue;								// only list valid blocks
 			
-			unsigned blockNum = ( block.tag() << log2( (unsigned)sets.size() ) ) | i;
+			unsigned blockNum = block.tag();			// determine block number, as appearing in mem
+			blockNum <<= log2( (unsigned)sets.size() );
+			blockNum |= i;
+			
 			tmp.push_back( blockNum );
 			os << "# \t\tB" << blockNum << (block.dirty() ? "/d" : "");
 			os << " : {" << std::endl;
 
 			for(unsigned k=0; k<blockSize; ++k){
-				const Word& word = block.words.at(k);
+				const Word& word = block.words.at(k);	// each word
 				os << "# \t\t\t0x";
 				
-				for(unsigned l=0; l<wordSize; ++l){
+				for(unsigned l=0; l<wordSize; ++l){		// each byte
 					os << std::hex << std::setfill('0') << std::setw(wordSize*2);
 					os << (unsigned)word.get().at(l);
 				}
@@ -336,13 +371,13 @@ std::ostream& Cache<C>::debug(std::ostream& os) const{
 	
 	os << "#" << std::endl << "# Block Replace Queues : {" << std::endl;
 	
-	for(unsigned i=0; i<sets.size(); ++i){
+	for(unsigned i=0; i<sets.size(); ++i){				// each set
 		const CacheSet<C>& set = sets.at(i);
 		os << "# \tS" << i << " : [ " << std::endl;
 		
 		std::vector<unsigned>& incache = blockNums.at(i);
 		std::vector<unsigned> queue = set.idxq.dump();
-		for(unsigned j=0; j<incache.size(); ++j){
+		for(unsigned j=0; j<incache.size(); ++j){		// each block in queue
 			os << "# \t\tB" << incache.at( queue.at(j) );
 			os << (j+1<setSize ? ", " : "") << std::endl;
 		}

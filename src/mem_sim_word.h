@@ -18,8 +18,6 @@ public:
 	
 	// constructs from word-sized buffer
 	Word(unsigned, uint8_t*);
-
-	~Word(void);
 	
 	// sets Word from fvec
 	void set(fvec<uint8_t>);

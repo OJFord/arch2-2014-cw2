@@ -160,9 +160,9 @@ private:
 	const unsigned	blockSize;
 	const unsigned	wordSize;
 	
-	const unsigned	hit_mult;
-	const unsigned	read_mult;
-	const unsigned	write_mult;
+	const unsigned	hit_time;
+	const unsigned	read_time;
+	const unsigned	write_time;
 
 	bool		_hit;
 	unsigned	_access_time;

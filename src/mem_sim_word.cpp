@@ -19,9 +19,6 @@ Word::Word(unsigned len, uint8_t* ibuf): fvec<uint8_t>(len, 0){
 		fvec<uint8_t>::at(i) = ibuf[i];
 }
 
-Word::~Word(void){
-}
-
 fvec<uint8_t> Word::get(void) const{
 	return (fvec<uint8_t>)*this;
 }
