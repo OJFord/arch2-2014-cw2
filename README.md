@@ -140,8 +140,8 @@ will be discarded.
 
 ### Data representation and format
 
-All addresses are byte addresses. Both addresses
-and set indices are decimal integers
+All addresses are byte addresses, and will be [word aligned](#word-aligned-addresses).
+Both addresses and set indices are decimal integers
 
 Data is a string of hex digits with upper-case letters, which
 must be of the same width as a cache word (i.e. two hex digits
@@ -502,3 +502,19 @@ are a few fairly short steps:
 Of these steps, the most complicated are arguably 2, making
 sure you understand how a write-back LRU cache works, and 5,
 which is making sure your code works.
+
+## Word Aligned Addresses
+
+I originally didn't specify that byte addresses words would be
+word aligned, which was a failing on my part. In my mind it
+was obvious that they would be aligned, but that is because
+I had a particular mental model based on real buses.
+
+A natural question people ask is "why are there address
+bits for the bytes, when you can only access words"?, which
+is quite reasonable. The main reason is that the address bus is not only
+for memory - as I showed in the final lecture, you can connect
+many things to one address bus, and some things like memory
+mapped IO may require individual byte transactions. But for
+the cache, you probably only want to work in words.
+
