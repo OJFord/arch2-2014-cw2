@@ -74,8 +74,8 @@ public:
 	
 	// getters for tag field, valid; dirty bits
 	unsigned tag(void) const;
-	bool	valid(void) const;
-	bool	dirty(void) const;
+	bool valid(void) const;
+	bool dirty(void) const;
 
 private:
 	fvec<Word>	words;
@@ -120,7 +120,9 @@ private:
 	const unsigned	blockSize;
 	const unsigned	wordSize;
 	
+	// allow flush, debug to access all blocks by index, rather than tag
 	friend void Cache<C>::flush(void);
+	friend std::ostream& Cache<C>::debug(std::ostream&) const;
 };
 
 typedef enum{

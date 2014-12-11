@@ -93,8 +93,8 @@ void write(Cache<C>* cache, unsigned wlen, std::stringstream params){
 
 template< template<class> class C >
 void flush(Cache<C>* cache){
-	std::cout << "flush-ack" << std::endl;
 	cache->flush();
+	std::cout << "flush-ack " << cache->access_time() << std::endl;
 }
 
 template< template<class> class C >

@@ -264,6 +264,7 @@ void Cache<C>::write(unsigned addr, uint8_t* ibuf){
 
 template< template<class> class C >
 void Cache<C>::flush(void){
+	_access_time = 0;
 	
 	for(unsigned i=0; i<sets.size(); ++i){
 		CacheSet<C>& set = sets.at(i);
@@ -277,6 +278,7 @@ void Cache<C>::flush(void){
 				CacheAddress addr(	block.tag(), i, 0,
 					addressLen, (unsigned)sets.size(), blockSize, wordSize );
 				higher_mem->write(addr(), buf);
+				_access_time += 1*write_mult;
 				block._dirty = false;
 			}
 		}
@@ -288,14 +290,23 @@ std::ostream& Cache<C>::debug(std::ostream& os) const{
 	
 	os << "#" << std::endl << "# Cache Data : {" << std::endl;
 	
+	std::vector< std::vector<unsigned> > blockNums;
+	
 	for(unsigned i=0; i<sets.size(); ++i){
 		const CacheSet<C>& set = sets.at(i);
 		os << "# \tS" << i << " : {" << std::endl;
 		
+		std::vector<unsigned> tmp;
 		for(unsigned j=0; j<setSize; ++j){
 			const CacheBlock& block = set.blocks.at(j);
+			
+			if( !block.valid() )
+				continue;
+			
 			unsigned blockNum = ( block.tag() << log2( (unsigned)sets.size() ) ) | i;
-			os << "# \t\tB" << blockNum << " : {" << std::endl;
+			tmp.push_back( blockNum );
+			os << "# \t\tB" << blockNum << (block.dirty() ? "/d" : "");
+			os << " : {" << std::endl;
 
 			for(unsigned k=0; k<blockSize; ++k){
 				const Word& word = block.words.at(k);
@@ -308,20 +319,22 @@ std::ostream& Cache<C>::debug(std::ostream& os) const{
 			os << "# \t\t}" << (j+1<sets.size() ? "," : "") << std::endl;
 		}
 		os << "# \t}" << (i+1<sets.size() ? "," : "") << std::endl;
+		blockNums.push_back(tmp);
 	}
 	
-	os << "#" << std::endl << "# Block Replace Queue : {" << std::endl;
+	os << "#" << std::endl << "# Block Replace Queues : {" << std::endl;
 	
 	for(unsigned i=0; i<sets.size(); ++i){
 		const CacheSet<C>& set = sets.at(i);
-		os << "# \tS" << i << " : { " << std::endl;
+		os << "# \tS" << i << " : [ " << std::endl;
 		
+		std::vector<unsigned>& incache = blockNums.at(i);
 		std::vector<unsigned> queue = set.idxq->dump();
-		for(unsigned j=0; j<setSize; ++j){
-			os << "# \t\tS" << i << "[" << queue.at(j) << "]";
+		for(unsigned j=0; j<incache.size(); ++j){
+			os << "# \t\tB" << incache.at( queue.at(j) );
 			os << (j+1<setSize ? ", " : "") << std::endl;
 		}
-		os << "# \t}" << std::endl;
+		os << "# \t]" << (i+1<sets.size() ? "," : "") << std::endl;
 	}
 	
 	return os << "# }" << std::endl << "#" << std::endl;
