@@ -115,7 +115,7 @@ private:
 	//	('compatible' is still quite restricting - unknown if used for read
 	//	or write, for example).
 	//	mem_sim_queue.h
-	queue<unsigned>*	idxq;
+	Q<unsigned>		idxq;
 	
 	const unsigned	blockSize;
 	const unsigned	wordSize;

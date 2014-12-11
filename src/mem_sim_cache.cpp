@@ -143,10 +143,9 @@ CacheSet<C>::CacheSet(unsigned setSize, unsigned blockSize, unsigned wordSize)
 		throw IncompatibleQueueException(
 			"Template parameter must be class derived from queue."
 		);
-	
-	idxq = new C<unsigned>;
-	for(unsigned i=0; i<setSize; ++i)
-		idxq->push(i);									// init LRU stack
+	else
+		for(unsigned i=0; i<setSize; ++i)
+			idxq.push(i);								// init LRU stack
 }
 
 template< template<class> class C >
@@ -155,7 +154,7 @@ CacheBlock* CacheSet<C>::get(unsigned tag){
 		CacheBlock& cand = blocks.at(i);
 		
 		if( cand.valid() && cand.tag() == tag ){		// hit
-			idxq->consume(i);
+			idxq.consume(i);
 			return &cand;
 		}
 	}
@@ -172,11 +171,11 @@ bool CacheSet<C>::set(unsigned tag, unsigned offset, uint8_t* data){
 
 template< template<class> class C >
 CacheBlock CacheSet<C>::load(unsigned tag, uint8_t* ibuf){
-	unsigned evict_idx = idxq->pop();
+	unsigned evict_idx = idxq.pop();
 	CacheBlock ret = blocks.at( evict_idx );			// grab block before it's kicked out
 	
 	blocks.at( evict_idx ).load_mem(tag, ibuf);
-	idxq->push( evict_idx );
+	idxq.push( evict_idx );
 	return ret;											// return old block for write back
 }
 
@@ -329,7 +328,7 @@ std::ostream& Cache<C>::debug(std::ostream& os) const{
 		os << "# \tS" << i << " : [ " << std::endl;
 		
 		std::vector<unsigned>& incache = blockNums.at(i);
-		std::vector<unsigned> queue = set.idxq->dump();
+		std::vector<unsigned> queue = set.idxq.dump();
 		for(unsigned j=0; j<incache.size(); ++j){
 			os << "# \t\tB" << incache.at( queue.at(j) );
 			os << (j+1<setSize ? ", " : "") << std::endl;
